@@ -56,11 +56,12 @@ public:
 
     Py_DecRef(utcfromtimestamp);
     Py_DecRef(datetime);
+    Py_DecRef(datetime_module);
   }
 
   ~Timestamps() {
     for (PyObject* datetime : datetimes) {
-      Py_DECREF(datetime);
+      Py_DecRef(datetime);
     }
   }
 
@@ -143,9 +144,10 @@ Matplot::Matplot(const Figure& fig) {
 
       for (const auto& line : ax.lines) {
         PyObject* x;
+        std::unique_ptr<Timestamps> ts;
         if (ax.is_x_nanotimestamps) {
-          Timestamps t(line.xs);
-          x = vector_to_ndarray(t.datetimes);
+          ts = std::make_unique<Timestamps>(line.xs);
+          x = vector_to_ndarray(ts->datetimes);
         } else {
           x = vector_to_ndarray(line.xs);
         }
@@ -164,12 +166,14 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(args);
         Py_DecRef(kwargs);
         Py_DecRef(plot);
+        Py_DecRef(pyline);
       }
       for (const auto& scatter : ax.scatters) {
         PyObject* x;
+        std::unique_ptr<Timestamps> ts;
         if (ax.is_x_nanotimestamps) {
-          Timestamps t(scatter.xs);
-          x = vector_to_ndarray(t.datetimes);
+          ts = std::make_unique<Timestamps>(scatter.xs);
+          x = vector_to_ndarray(ts->datetimes);
         } else {
           x = vector_to_ndarray(scatter.xs);
         }
@@ -188,12 +192,14 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(args);
         Py_DecRef(kwargs);
         Py_DecRef(plot);
+        Py_DecRef(pyscatter);
       }
       for (const auto& area : ax.areas) {
         PyObject* x;
+        std::unique_ptr<Timestamps> ts;
         if (ax.is_x_nanotimestamps) {
-          Timestamps t(area.xs);
-          x = vector_to_ndarray(t.datetimes);
+          ts = std::make_unique<Timestamps>(area.xs);
+          x = vector_to_ndarray(ts->datetimes);
         } else {
           x = vector_to_ndarray(area.xs);
         }
@@ -208,6 +214,7 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(x);
         Py_DecRef(y1);
         Py_DecRef(y2);
+        Py_DecRef(pyarea);
       }
       PyObject_CallMethod(pyax, "legend", nullptr);
       Py_DecRef(pyax);

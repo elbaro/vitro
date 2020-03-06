@@ -5,10 +5,11 @@ void plot1() {
   fig.title = "t - t - title";
 
   auto& ax = fig.axes(1, 1);
-  ax.line("line1", {1, 2, 3}, {4, 5, 6});
-  ax.scatter("scatter2", {4, 5, 6}, {1, 2, 3});
+  ax.line("line1", {1583521630'000'000'000, 1583521730'000'000'000, 1583521830'000'000'000}, {4, 5, 6});
+  ax.scatter("scatter2", {1583521630'000'000'000, 1583521730'000'000'000, 1583521830'000'000'000}, {1, 4, 2});
   ax.xlabel = "x-axis-name";
   ax.ylabel = "y-axis-name";
+  ax.is_x_nanotimestamps = true;
 
   Matplot matplot(fig);
   matplot.save("plot1.png");
@@ -26,7 +27,6 @@ void plot2() {
   auto& ax2 = fig.axes(1, 2);
   ax2.xlabel = "x-axis-name";
   ax2.ylabel = "y-axis-name";
-
   ax2.line("line3", {10, 20, 30}, {4, 3, 1});
   ax2.line("line4", {30, 15, 5}, {4, 2, 2.5});
   auto& scatter = ax2.scatter("scatter4", {40, 50, 60, 70}, {2, 5, 0, 10});
