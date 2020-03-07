@@ -2,6 +2,7 @@
 #include <Python.h>
 
 #include <experimental/filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -12,15 +13,16 @@ public:
   //   width_ = width;
   //   return *this;
   // }
-  // Line& opacity(double opacity) {
-  //   opacity_ = opacity;
+  // Line& alpha(double alpha) {
+  //   alpha_ = alpha;
   //   return *this;
   // }
 
   // private:
   std::string name{};
-  double width_ = 1.0;
-  double opacity_ = 0.0;
+  double width = 1.0;
+  double alpha = 0.8;
+  std::string drawstyle = "default";
   std::vector<int64_t> xs{}; // TODO : generic
   std::vector<double> ys{};
 };
@@ -35,8 +37,8 @@ public:
   //   marker_size_ = size;
   //   return *this;
   // }
-  // Scatter& opacity(double opacity) {
-  //   opacity_ = opacity;
+  // Scatter& alpha(double alpha) {
+  //   alpha_ = alpha;
   //   return *this;
   // }
 
@@ -44,7 +46,8 @@ public:
   std::string name;
   std::string marker_type = "o"; // temporarily we use matplotlib style
   double marker_size = 10;
-  double opacity = 0.0;
+  std::optional<std::string> color;
+  double alpha = 0.8;
   std::vector<int64_t> xs; // TODO : generic
   std::vector<double> ys;
 };
@@ -59,16 +62,15 @@ public:
   //   fill_color_ = color;
   //   return *this;
   // }
-  // Area& opacity(double opacity) {
-  //   opacity_ = opacity;
+  // Area& alpha(double alpha) {
+  //   alpha_ = alpha;
   //   return *this;
   // }
 
   // private:
   std::string name;
-  char line_color = 'b';
-  char fill_color = 'r';
-  double opacity = 0.0;
+  std::string color = "r";
+  double alpha = 0.8;
   std::vector<int64_t> xs; // TODO : generic
   std::vector<double> y1s;
   std::vector<double> y2s;

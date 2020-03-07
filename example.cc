@@ -21,7 +21,10 @@ void plot2() {
 
   auto& ax1 = fig.axes(2, 1);
   ax1.line("line2", {1, 2, 3}, {4, 5, 6});
-  ax1.scatter("scatter5", {4, 5, 6}, {1, 2, 3});
+  {
+    auto& scatter = ax1.scatter("scatter5", {4, 5, 6}, {1, 2, 3});
+    scatter.color = "green";
+  }
   ax1.title = "row=2 col=1";
 
   auto& ax2 = fig.axes(1, 2);
@@ -36,8 +39,20 @@ void plot2() {
   matplot.save("plot2.png");
 }
 
+void plot3() {
+  Figure fig;
+  fig.title = "area chart";
+  auto& ax = fig.axes(1, 1);
+
+  ax.area("area-series", {1, 2, 3}, {4, 5, 6}, {6, 6, 4});
+
+  Matplot matplot(fig);
+  matplot.save("plot3.png");
+}
+
 int main() {
   plot1();
   plot2();
+  plot3();
   return 0;
 }

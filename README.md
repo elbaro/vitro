@@ -4,6 +4,7 @@
 
 ![](plot1.png)
 ![](plot2.png)
+![](plot3.png)
 
 The differences from matplotlib-cpp are:
 - stateless API
@@ -18,27 +19,12 @@ BAZEL_CXXOPTS=-I/usr/include/python3.8:-I/usr/lib/python3.8/site-packages/numpy/
 (open BUILD file and change -lpython3.8 to your version)
 bazel build example
 ./bazel-bin/example
-(plot1.png)
-(plot2.png)
+(plot{1,2,3}.png)
 ```
 
 ## Usage
 ```cpp
-void plot1() {
-  Figure fig{};
-  fig.title = "t - t - title";
-
-  auto& ax = fig.axes(1, 1);
-  ax.line("line1", {1, 2, 3}, {4, 5, 6});
-  ax.scatter("scatter2", {4, 5, 6}, {1, 2, 3});
-  ax.xlabel = "x-axis-name";
-  ax.ylabel = "y-axis-name";
-
-  Matplot matplot(fig);
-  matplot.save("plot1.png");
-}
-
-void plot2() {
+void plot() {
   Figure fig(2, 2);
   fig.title = "2020-02-02";
 

@@ -20,6 +20,9 @@ cc_library(
 cc_binary(
     name = "example",
     srcs = ["example.cc"],
+    copts = [
+        "-std=c++17",
+    ],
     deps = [
         ":vitro",
     ],

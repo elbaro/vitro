@@ -155,7 +155,8 @@ Matplot::Matplot(const Figure& fig) {
 
         auto plot = PyObject_GetAttrString(pyax, "plot");
         auto args = Py_BuildValue("(OO)", x, y);
-        auto kwargs = Py_BuildValue("{s:s}", "label", line.name.c_str());
+        auto kwargs = Py_BuildValue("{s:s,s:d,s:s,s:d}", "label", line.name.c_str(), "alpha", line.alpha, "drawstyle",
+                                    line.drawstyle.c_str(), "linewidth", line.width);
         auto pyline = PyObject_Call(plot, args, kwargs);
         if (pyline == nullptr) {
           throw std::runtime_error("cannot draw a line");
@@ -181,7 +182,9 @@ Matplot::Matplot(const Figure& fig) {
 
         auto plot = PyObject_GetAttrString(pyax, "scatter");
         auto args = Py_BuildValue("(OO)", x, y);
-        auto kwargs = Py_BuildValue("{s:s, s:s}", "label", scatter.name.c_str(), "marker", scatter.marker_type.c_str());
+        auto kwargs = Py_BuildValue("{s:s, s:d, s:s, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha,
+                                    "marker", scatter.marker_type.c_str(), "color",
+                                    scatter.color ? PyUnicode_FromString(scatter.color->c_str()) : Py_None);
         auto pyscatter = PyObject_Call(plot, args, kwargs);
         if (pyscatter == nullptr) {
           throw std::runtime_error("cannot draw a scatter");
@@ -206,14 +209,20 @@ Matplot::Matplot(const Figure& fig) {
         auto y1 = vector_to_ndarray(area.y1s);
         auto y2 = vector_to_ndarray(area.y2s);
 
-        auto pyarea = PyObject_CallMethod(pyax, "area", "OOO", x, y1, y2);
+        auto plot = PyObject_GetAttrString(pyax, "fill_between");
+        auto args = Py_BuildValue("(OOO)", x, y1, y2);
+        auto kwargs = Py_BuildValue("{s:s, s:d, s:s}", "label", area.name.c_str(), "alpha", area.alpha, "facecolor",
+                                    area.color.c_str());
+        auto pyarea = PyObject_Call(plot, args, kwargs);
         if (pyarea == nullptr) {
-          throw std::runtime_error("cannot draw a area");
+          throw std::runtime_error("cannot draw a fill_between");
         }
-
         Py_DecRef(x);
         Py_DecRef(y1);
         Py_DecRef(y2);
+        Py_DecRef(args);
+        Py_DecRef(kwargs);
+        Py_DecRef(plot);
         Py_DecRef(pyarea);
       }
       PyObject_CallMethod(pyax, "legend", nullptr);
@@ -230,7 +239,7 @@ Matplot::Matplot(const Figure& fig) {
 void Matplot::save(const std::experimental::filesystem::path& path) {
   auto ext = path.extension();
   if (ext == ".png") {
-    PyObject_CallMethod(pyfig, "savefig", "s", path.c_str()); // TODO: kwargs
+    PyObject_CallMethod(pyfig, "savefig", "s", path.c_str());
   } else {
     throw std::runtime_error("unsupported matplotlib export file format: " + ext.string());
   }
