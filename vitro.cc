@@ -105,8 +105,8 @@ Text& Axes::text(const std::string& text, double x, double y) {
 }
 
 std::pair<int64_t, int64_t> Axes::xrange() {
-  int64_t mn = std::numeric_limits<int64_t>::min();
-  int64_t mx = std::numeric_limits<int64_t>::max();
+  int64_t mn = std::numeric_limits<int64_t>::max();
+  int64_t mx = std::numeric_limits<int64_t>::min();
   for (const auto& line : lines) {
     if (line.xs.size() > 0) {
       auto v1 = *std::min_element(line.xs.begin(), line.xs.end());
