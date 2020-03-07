@@ -94,6 +94,14 @@ Area& Axes::area(const std::string& name, const std::vector<int64_t>& xs, const 
   return areas.back();
 }
 
+Text& Axes::text(const std::string& text, double x, double y) {
+  texts.emplace_back();
+  texts.back().text = text;
+  texts.back().x = x;
+  texts.back().y = y;
+  return texts.back();
+}
+
 Matplot::Matplot(const Figure& fig) {
   make_sure_initialized();
 
@@ -224,6 +232,32 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(kwargs);
         Py_DecRef(plot);
         Py_DecRef(pyarea);
+      }
+
+      for (const auto& text : ax.texts) {
+        auto props = Py_BuildValue("{s:s, s:s, s:d}", "boxstyle", text.bbox_style.c_str(), "facecolor",
+                                   text.bbox_color.c_str(), "alpha", text.bbox_alpha);
+        PyObject* transform;
+        if (text.transform == "axes") {
+          transform = PyObject_GetAttrString(pyax, "transAxes");
+        } else {
+          throw std::runtime_error("unknown text coordinate transform: " + text.transform);
+        }
+        auto plot = PyObject_GetAttrString(pyax, "text");
+        auto args = Py_BuildValue("(dds)", text.x, text.y, text.text.c_str());
+        auto kwargs =
+            Py_BuildValue("{s:d,s:d,s:O,s:O,s:s,s:s}", "fontsize", text.fontsize, "alpha", text.alpha, "transform",
+                          transform, "bbox", props, "verticalalignment", text.verticalalignment.c_str(),
+                          "horizontalalignment", text.horizontalalignment.c_str());
+
+        auto pytext = PyObject_Call(plot, args, kwargs);
+        if (pytext == nullptr) {
+          throw std::runtime_error("cannot draw a text");
+        }
+        Py_DecRef(args);
+        Py_DecRef(kwargs);
+        Py_DecRef(plot);
+        Py_DecRef(pytext);
       }
       PyObject_CallMethod(pyax, "legend", nullptr);
       Py_DecRef(pyax);

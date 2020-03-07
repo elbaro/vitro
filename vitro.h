@@ -76,6 +76,23 @@ public:
   std::vector<double> y2s;
 };
 
+class Text {
+public:
+  double alpha = 0.8;
+  double fontsize = 9.0;
+  std::string text;
+  double x; // 0~1
+  double y; // 0~1
+  std::string horizontalalignment = "right";
+  std::string verticalalignment = "bottom";
+  std::string transform = "axes"; // data, axes, figure
+
+  // bbox
+  double bbox_alpha = 0.5;
+  std::string bbox_color = "wheat";
+  std::string bbox_style = "round";
+};
+
 class Axes {
 public:
   /* ---------------------------------- plot ---------------------------------- */
@@ -83,6 +100,7 @@ public:
   Scatter& scatter(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& ys);
   Area& area(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& y1s,
              const std::vector<double>& y2s);
+  Text& text(const std::string& text, double x, double y);
 
   std::string title{};
   std::string xlabel;
@@ -91,6 +109,7 @@ public:
   std::vector<Line> lines;
   std::vector<Scatter> scatters;
   std::vector<Area> areas;
+  std::vector<Text> texts;
 };
 
 class Figure {
