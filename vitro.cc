@@ -234,8 +234,8 @@ Matplot::Matplot(const Figure& fig) {
 
         auto plot = PyObject_GetAttrString(pyax, "scatter");
         auto args = Py_BuildValue("(OO)", x, y);
-        auto kwargs = Py_BuildValue("{s:s, s:d, s:s, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha,
-                                    "marker", scatter.marker_type.c_str(), "color",
+        auto kwargs = Py_BuildValue("{s:s, s:d, s:s, s:d, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha,
+                                    "marker", scatter.marker_type.c_str(), "linewidths", scatter.width, "color",
                                     scatter.color ? PyUnicode_FromString(scatter.color->c_str()) : Py_None);
         auto pyscatter = PyObject_Call(plot, args, kwargs);
         if (pyscatter == nullptr) {
@@ -312,6 +312,8 @@ Matplot::Matplot(const Figure& fig) {
   for (auto pyax : pyaxes) {
     Py_DecRef(pyax);
   }
+
+  PyObject_CallMethod(pyfig, "tight_layout", nullptr);
 }
 
 void Matplot::save(const std::experimental::filesystem::path& path) {

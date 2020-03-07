@@ -47,6 +47,7 @@ public:
   std::string marker_type = "o"; // temporarily we use matplotlib style
   double marker_size = 10;
   std::optional<std::string> color;
+  double width = 1.0;
   double alpha = 0.8;
   std::vector<int64_t> xs; // TODO : generic
   std::vector<double> ys;
