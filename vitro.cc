@@ -1,5 +1,6 @@
 #include "vitro.h"
 #include <atomic>
+#include <limits>
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <python3.8/object.h>
@@ -100,6 +101,48 @@ Text& Axes::text(const std::string& text, double x, double y) {
   texts.back().x = x;
   texts.back().y = y;
   return texts.back();
+}
+
+std::pair<int64_t, int64_t> Axes::xrange() {
+  int64_t mn = std::numeric_limits<int64_t>::min();
+  int64_t mx = std::numeric_limits<int64_t>::max();
+  for (const auto& line : ax.lines) {
+    if (line.size() > 0) {
+      auto v1 = *std::min_element(line.xs.begin(), line.xs.end());
+      auto v2 = *std::max_element(line.xs.begin(), line.xs.end());
+      if (v1 < mn) {
+        mn = v1;
+      }
+      if (v2 > mx) {
+        mx = v2;
+      }
+    }
+  }
+  for (const auto& scatter : ax.scatters) {
+    if (scatter.size() > 0) {
+      auto v1 = *std::min_element(scatter.xs.begin(), scatter.xs.end());
+      auto v2 = *std::max_element(scatter.xs.begin(), scatter.xs.end());
+      if (v1 < mn) {
+        mn = v1;
+      }
+      if (v2 > mx) {
+        mx = v2;
+      }
+    }
+  }
+  for (const auto& area : ax.areas) {
+    if (area.size() > 0) {
+      auto v1 = *std::min_element(area.xs.begin(), area.xs.end());
+      auto v2 = *std::max_element(area.xs.begin(), area.xs.end());
+      if (v1 < mn) {
+        mn = v1;
+      }
+      if (v2 > mx) {
+        mx = v2;
+      }
+    }
+  }
+  return std::make_pair(mn, mx);
 }
 
 Matplot::Matplot(const Figure& fig) {

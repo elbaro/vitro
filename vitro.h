@@ -95,6 +95,7 @@ public:
 
 class Axes {
 public:
+  std::pair<int64_t, int64_t> xrange();
   /* ---------------------------------- plot ---------------------------------- */
   Line& line(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& ys);
   Scatter& scatter(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& ys);
