@@ -207,8 +207,9 @@ Matplot::Matplot(const Figure& fig) {
 
         auto plot = PyObject_GetAttrString(pyax, "plot");
         auto args = Py_BuildValue("(OO)", x, y);
-        auto kwargs = Py_BuildValue("{s:s,s:d,s:s,s:d}", "label", line.name.c_str(), "alpha", line.alpha, "drawstyle",
-                                    line.drawstyle.c_str(), "linewidth", line.width);
+        auto kwargs = Py_BuildValue("{s:s,s:d,s:s,s:d,s:O}", "label", line.name.c_str(), "alpha", line.alpha,
+                                    "drawstyle", line.drawstyle.c_str(), "linewidth", line.width,
+                                    line.color ? PyUnicode_FromString(line.color->c_str()) : Py_None);
         auto pyline = PyObject_Call(plot, args, kwargs);
         if (pyline == nullptr) {
           throw std::runtime_error("cannot draw a line");

@@ -22,6 +22,7 @@ public:
   std::string name{};
   double width = 1.0;
   double alpha = 0.8;
+  std::optional<std::string> color;
   std::string drawstyle = "default";
   std::vector<int64_t> xs{}; // TODO : generic
   std::vector<double> ys{};
