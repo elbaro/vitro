@@ -10,7 +10,6 @@ cc_library(
     # hdrs = glob(["**/*.h"]),
     copts = [
         "-std=c++17",
-        "-isystem/usr/include/python3.8",
     ],
     linkopts = [
         "-lpython3.8",

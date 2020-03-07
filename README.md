@@ -14,6 +14,8 @@ The current implementation is ugly but supports `line(x,y)`, `scatter(x,y)`, `ar
 
 ## Example
 ```
+BAZEL_CXXOPTS=-I/usr/include/python3.8:-I/usr/lib/python3.8/site-packages/numpy/core/include
+(open BUILD file and change -lpython3.8 to your version)
 bazel build example
 ./bazel-bin/example
 (plot1.png)
