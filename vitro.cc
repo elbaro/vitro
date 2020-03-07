@@ -1,4 +1,5 @@
 #include "vitro.h"
+#include <algorithm>
 #include <atomic>
 #include <limits>
 #define PY_SSIZE_T_CLEAN
@@ -106,8 +107,8 @@ Text& Axes::text(const std::string& text, double x, double y) {
 std::pair<int64_t, int64_t> Axes::xrange() {
   int64_t mn = std::numeric_limits<int64_t>::min();
   int64_t mx = std::numeric_limits<int64_t>::max();
-  for (const auto& line : ax.lines) {
-    if (line.size() > 0) {
+  for (const auto& line : lines) {
+    if (line.xs.size() > 0) {
       auto v1 = *std::min_element(line.xs.begin(), line.xs.end());
       auto v2 = *std::max_element(line.xs.begin(), line.xs.end());
       if (v1 < mn) {
@@ -118,8 +119,8 @@ std::pair<int64_t, int64_t> Axes::xrange() {
       }
     }
   }
-  for (const auto& scatter : ax.scatters) {
-    if (scatter.size() > 0) {
+  for (const auto& scatter : scatters) {
+    if (scatter.xs.size() > 0) {
       auto v1 = *std::min_element(scatter.xs.begin(), scatter.xs.end());
       auto v2 = *std::max_element(scatter.xs.begin(), scatter.xs.end());
       if (v1 < mn) {
@@ -130,8 +131,8 @@ std::pair<int64_t, int64_t> Axes::xrange() {
       }
     }
   }
-  for (const auto& area : ax.areas) {
-    if (area.size() > 0) {
+  for (const auto& area : areas) {
+    if (area.xs.size() > 0) {
       auto v1 = *std::min_element(area.xs.begin(), area.xs.end());
       auto v2 = *std::max_element(area.xs.begin(), area.xs.end());
       if (v1 < mn) {
