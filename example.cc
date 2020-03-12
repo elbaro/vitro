@@ -45,11 +45,17 @@ void plot2() {
 }
 
 void plot3() {
-  Figure fig;
+  Figure fig(2, 1);
   fig.title = "area chart";
-  auto& ax = fig.axes(1, 1);
-
-  ax.area("area-series", {1, 2, 3}, {4, 5, 6}, {6, 6, 4});
+  fig.height_ratios = {3, 1};
+  {
+    auto& ax = fig.axes(1, 1);
+    ax.area("large-area-series", {1, 2, 3}, {4, 5, 6}, {6, 6, 4});
+  }
+  {
+    auto& ax = fig.axes(2, 1);
+    ax.area("small-area-series", {10, 25, 30, 5}, {46, 5, 6, 10}, {6, 6, 4, 5});
+  }
 
   Matplot matplot(fig);
   matplot.save("plot3.png");

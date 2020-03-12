@@ -14,6 +14,8 @@ void* _import_numpy() {
   return nullptr;
 }
 
+PyObject* new_none() { Py_RETURN_NONE; }
+
 void make_sure_initialized() {
   static std::atomic<bool> should_be_initialized(true);
   if (should_be_initialized.exchange(false, std::memory_order_seq_cst)) {
@@ -156,7 +158,7 @@ Matplot::Matplot(const Figure& fig) {
 
   // default dpi = 100 = pixels per inch
   // width (px) => width/dpi (inches)
-  pyfig = PyObject_CallMethod(pyplot, "figure", "O(dd)", Py_None, fig.width / 100.0, fig.height / 100.0);
+  pyfig = PyObject_CallMethod(pyplot, "figure", "O(dd)", new_none(), fig.width / 100.0, fig.height / 100.0);
   // pyfig = PyObject_CallMethod(pyplot, "figure", nullptr);
   if (pyfig == nullptr) {
     throw std::runtime_error("matplotlib.pyplot.figure() failed");
@@ -166,7 +168,32 @@ Matplot::Matplot(const Figure& fig) {
     PyObject_CallMethod(pyfig, "suptitle", "s", fig.title.c_str());
   }
 
-  PyObject* result = PyObject_CallMethod(pyfig, "subplots", "iiOOO", fig.nrow, fig.ncol, Py_False, Py_False, Py_False);
+  // gridspec_kw
+  PyObject* gridspec_kw = nullptr;
+  if (fig.width_ratios || fig.height_ratios) {
+    gridspec_kw = PyDict_New();
+    if (fig.width_ratios) {
+      auto list = PyList_New(fig.width_ratios->size());
+      Py_ssize_t idx = 0;
+      for (auto& ratio : *fig.width_ratios) {
+        PyList_SetItem(list, idx++, PyFloat_FromDouble(ratio));
+      }
+      PyDict_SetItemString(gridspec_kw, "width_ratios", list);
+    }
+    if (fig.height_ratios) {
+      auto list = PyList_New(fig.height_ratios->size());
+      Py_ssize_t idx = 0;
+      for (auto& ratio : *fig.height_ratios) {
+        PyList_SetItem(list, idx++, PyFloat_FromDouble(ratio));
+      }
+      PyDict_SetItemString(gridspec_kw, "height_ratios", list);
+    }
+    Py_IncRef(gridspec_kw);
+  }
+
+  // r,c,sharex,sharey,squeeze,subplot_kw,gridspec_kw
+  PyObject* result = PyObject_CallMethod(pyfig, "subplots", "iiOOOOO", fig.nrow, fig.ncol, Py_False, Py_False, Py_False,
+                                         Py_None, (gridspec_kw == nullptr) ? new_none() : gridspec_kw);
   if (result == nullptr) {
     throw std::runtime_error("Figure.subplots() failed");
   }
@@ -235,9 +262,13 @@ Matplot::Matplot(const Figure& fig) {
 
         auto plot = PyObject_GetAttrString(pyax, "scatter");
         auto args = Py_BuildValue("(OO)", x, y);
-        auto kwargs = Py_BuildValue("{s:s, s:d, s:s, s:d, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha,
-                                    "marker", scatter.marker_type.c_str(), "linewidths", scatter.width, "color",
-                                    scatter.color ? PyUnicode_FromString(scatter.color->c_str()) : Py_None);
+        auto color_str = scatter.color ? PyUnicode_FromString(scatter.color->c_str()) : Py_None;
+        auto kwargs =
+            Py_BuildValue("{s:s, s:d, s:s, s:d, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha, "marker",
+                          scatter.marker_type.c_str(), "linewidths", scatter.width, "color", color_str);
+        if (color_str != Py_None) {
+          Py_DecRef(color_str);
+        }
         auto pyscatter = PyObject_Call(plot, args, kwargs);
         if (pyscatter == nullptr) {
           throw std::runtime_error("cannot draw a scatter");
@@ -299,12 +330,16 @@ Matplot::Matplot(const Figure& fig) {
         if (pytext == nullptr) {
           throw std::runtime_error("cannot draw a text");
         }
+        Py_DecRef(transform);
+        Py_DecRef(props);
         Py_DecRef(args);
         Py_DecRef(kwargs);
         Py_DecRef(plot);
         Py_DecRef(pytext);
       }
-      PyObject_CallMethod(pyax, "legend", nullptr);
+      if (ax.lines.size() + ax.scatters.size() + ax.areas.size() > 0) {
+        PyObject_CallMethod(pyax, "legend", nullptr);
+      }
       Py_DecRef(pyax);
     }
   }

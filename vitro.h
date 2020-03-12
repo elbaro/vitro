@@ -146,6 +146,8 @@ public:
   double width = 800;
   double height = 600;
   std::string title;
+  std::optional<std::vector<double>> width_ratios;
+  std::optional<std::vector<double>> height_ratios;
 
 private:
   std::vector<Axes> axes_;
