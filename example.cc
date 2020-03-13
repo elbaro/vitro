@@ -25,12 +25,13 @@ void plot2() {
   fig.title = "2020-02-20";
 
   auto& ax1 = fig.axes(2, 1);
+  ax1.title = "row=2 col=1";
   ax1.line("line2", {1, 2, 3}, {4, 5, 6});
   {
     auto& scatter = ax1.scatter("scatter5", {4, 5, 6}, {1, 2, 3});
+    scatter.marker_size = 10;
     scatter.color = "green";
   }
-  ax1.title = "row=2 col=1";
 
   auto& ax2 = fig.axes(1, 2);
   ax2.xlabel = "x-axis-name";

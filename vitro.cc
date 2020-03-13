@@ -261,7 +261,7 @@ Matplot::Matplot(const Figure& fig) {
         auto y = vector_to_ndarray(scatter.ys);
 
         auto plot = PyObject_GetAttrString(pyax, "scatter");
-        auto args = Py_BuildValue("(OO)", x, y);
+        auto args = Py_BuildValue("(OOd)", x, y, scatter.marker_size);
         auto color_str = scatter.color ? PyUnicode_FromString(scatter.color->c_str()) : Py_None;
         auto kwargs =
             Py_BuildValue("{s:s, s:d, s:s, s:d, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha, "marker",
