@@ -364,9 +364,5 @@ Matplot::Matplot(const Figure& fig) {
 
 void Matplot::save(const std::experimental::filesystem::path& path) {
   auto ext = path.extension();
-  if (ext == ".png") {
-    PyObject_CallMethod(pyfig, "savefig", "s", path.c_str());
-  } else {
-    throw std::runtime_error("unsupported matplotlib export file format: " + ext.string());
-  }
+  PyObject_CallMethod(pyfig, "savefig", "s", path.c_str());
 }
