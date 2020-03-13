@@ -266,6 +266,16 @@ Matplot::Matplot(const Figure& fig) {
         auto kwargs =
             Py_BuildValue("{s:s, s:d, s:s, s:d, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha, "marker",
                           scatter.marker_type.c_str(), "linewidths", scatter.width, "color", color_str);
+        if (scatter.marker_edge_color) {
+          auto s = PyUnicode_FromString(scatter.marker_edge_color->c_str());
+          PyDict_SetItemString(kwargs, "edgecolors", s);
+          Py_DecRef(s);
+        }
+        if (scatter.marker_face_color) {
+          auto s = PyUnicode_FromString(scatter.marker_face_color->c_str());
+          PyDict_SetItemString(kwargs, "facecolors", s);
+          Py_DecRef(s);
+        }
         if (color_str != Py_None) {
           Py_DecRef(color_str);
         }

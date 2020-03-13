@@ -47,6 +47,8 @@ public:
   std::string name;
   std::string marker_type = "o"; // temporarily we use matplotlib style
   double marker_size = 10;
+  std::optional<std::string> marker_edge_color; // accepts "none"
+  std::optional<std::string> marker_face_color; // accepts "none"
   std::optional<std::string> color;
   double width = 1.0;
   double alpha = 0.8;

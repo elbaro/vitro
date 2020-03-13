@@ -31,6 +31,7 @@ void plot2() {
     auto& scatter = ax1.scatter("scatter5", {4, 5, 6}, {1, 2, 3});
     scatter.marker_size = 100;
     scatter.color = "green";
+    scatter.marker_face_color = "none";
   }
 
   auto& ax2 = fig.axes(1, 2);
@@ -39,7 +40,8 @@ void plot2() {
   ax2.line("line3", {10, 20, 30}, {4, 3, 1});
   ax2.line("line4", {30, 15, 5}, {4, 2, 2.5});
   auto& scatter = ax2.scatter("scatter4", {40, 50, 60, 70}, {2, 5, 0, 10});
-  scatter.marker_type = "4";
+  scatter.marker_type = '4';
+  scatter.marker_size = 200;
 
   Matplot matplot(fig);
   matplot.save("plot2.png");
