@@ -29,7 +29,7 @@ void plot2() {
   ax1.line("line2", {1, 2, 3}, {4, 5, 6});
   {
     auto& scatter = ax1.scatter("scatter5", {4, 5, 6}, {1, 2, 3});
-    scatter.marker_size = 10;
+    scatter.marker_size = 100;
     scatter.color = "green";
   }
 
