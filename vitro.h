@@ -80,6 +80,16 @@ public:
   std::vector<double> y2s;
 };
 
+class Histogram {
+public:
+  std::vector<std::vector<int64_t>> xs_list;
+  std::vector<std::vector<double>> ys_list;
+  double alpha = 0.3;
+  int num_bins = 0;
+  bool normalize_unit_area = false;
+  std::string type = "step"; // or "stepfilled"
+};
+
 class Text {
 public:
   double alpha = 0.8;
@@ -114,6 +124,7 @@ public:
   std::vector<Line> lines;
   std::vector<Scatter> scatters;
   std::vector<Area> areas;
+  std::vector<Histogram> histograms;
   std::vector<Text> texts;
 };
 

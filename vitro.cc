@@ -319,7 +319,35 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(plot);
         Py_DecRef(pyarea);
       }
+      for (const auto& histogram : ax.histograms) {
+        PyObject* x;
+        std::unique_ptr<Timestamps> ts;
+        if (ax.is_x_nanotimestamps) {
+          ts = std::make_unique<Timestamps>(line.xs);
+          x = vector_to_ndarray(ts->datetimes);
+        } else {
+          x = vector_to_ndarray(line.xs);
+        }
+        auto y = vector_to_ndarray(line.ys);
 
+        auto plot = PyObject_GetAttrString(pyax, "hist");
+        auto args = Py_BuildValue("(O)", x);
+        auto kwargs = Py_BuildValue("{s:O, s:s,s:d,s:i,s:s,s:d,s:O}", "weights", y, "label", histogram.name.c_str(),
+                                    "alpha", histogram.alpha, "bins", histogram.num_bins, "histtype", histogram.type,
+                                    "density", histogram.normalize_unit_area, "stacked",
+                                    histogram.stackedd ? PyUnicode_FromString(histogram.color->c_str()) : Py_None);
+        auto pyhist = PyObject_Call(plot, args, kwargs);
+        if (pyhist == nullptr) {
+          throw std::runtime_error("cannot draw a line");
+        }
+
+        Py_DecRef(x);
+        Py_DecRef(y);
+        Py_DecRef(args);
+        Py_DecRef(kwargs);
+        Py_DecRef(plot);
+        Py_DecRef(pyline);
+      }
       for (const auto& text : ax.texts) {
         auto props = Py_BuildValue("{s:s, s:s, s:d}", "boxstyle", text.bbox_style.c_str(), "facecolor",
                                    text.bbox_color.c_str(), "alpha", text.bbox_alpha);
