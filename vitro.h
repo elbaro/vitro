@@ -74,6 +74,7 @@ public:
   // private:
   std::string name;
   std::string color = "r";
+
   double alpha = 0.8;
   std::vector<int64_t> xs; // TODO : generic
   std::vector<double> y1s;
@@ -82,12 +83,18 @@ public:
 
 class Histogram {
 public:
-  std::vector<std::vector<int64_t>> xs_list;
-  std::vector<std::vector<double>> ys_list;
+  std::vector<std::string> names;
   double alpha = 0.3;
-  int num_bins = 0;
+  bool stacked = false;
+  bool cumulative = false;
+  bool log_scale_x = false;
+  std::string type = "stepfilled";
+  // std::string type = "step"; // or "stepfilled"
   bool normalize_unit_area = false;
-  std::string type = "step"; // or "stepfilled"
+
+  std::vector<std::vector<double>> xs_list;
+  std::optional<std::vector<std::vector<double>>> weights_list;
+  int num_bins = 0;
 };
 
 class Text {
@@ -115,6 +122,8 @@ public:
   Scatter& scatter(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& ys);
   Area& area(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& y1s,
              const std::vector<double>& y2s);
+  Histogram& histogram(const std::vector<std::string>& names, int num_bins,
+                       const std::vector<std::vector<double>>& xs_list);
   Text& text(const std::string& text, double x, double y);
 
   std::string title{};

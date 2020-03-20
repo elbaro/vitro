@@ -29,9 +29,22 @@ template <> struct select_npy_type<double> { const static NPY_TYPES type = NPY_D
 template <> struct select_npy_type<int64_t> { const static NPY_TYPES type = NPY_INT64; };
 template <> struct select_npy_type<PyObject*> { const static NPY_TYPES type = NPY_OBJECT; };
 
-template <typename V> PyObject* vector_to_ndarray(const std::vector<V>& vec) {
+template <typename V> PyObject* vector_to_1darray(const std::vector<V>& vec) {
   Py_intptr_t dims[] = {static_cast<Py_intptr_t>(vec.size())};
   auto arr = PyArray_SimpleNewFromData(1, dims, select_npy_type<V>::type,
+                                       const_cast<void*>(reinterpret_cast<const void*>(vec.data())));
+  if (arr == nullptr) {
+    throw std::runtime_error("cannot convert std::vector to np.ndarray");
+  }
+  return arr;
+}
+
+static_assert(sizeof(Py_intptr_t) == sizeof(int*));
+
+template <typename V> PyObject* vector_to_ndarray(const std::vector<V>& vec, const std::vector<int> dims) {
+  const Py_intptr_t* pydims = reinterpret_cast<const Py_intptr_t*>(dims.data());
+
+  auto arr = PyArray_SimpleNewFromData(dims.size(), pydims, select_npy_type<V>::type,
                                        const_cast<void*>(reinterpret_cast<const void*>(vec.data())));
   if (arr == nullptr) {
     throw std::runtime_error("cannot convert std::vector to np.ndarray");
@@ -96,6 +109,15 @@ Area& Axes::area(const std::string& name, const std::vector<int64_t>& xs, const 
   areas.back().y1s = y1s;
   areas.back().y2s = y2s;
   return areas.back();
+}
+
+Histogram& Axes::histogram(const std::vector<std::string>& names, int num_bins,
+                           const std::vector<std::vector<double>>& xs_list) {
+  histograms.emplace_back();
+  histograms.back().names = names;
+  histograms.back().num_bins = num_bins;
+  histograms.back().xs_list = xs_list;
+  return histograms.back();
 }
 
 Text& Axes::text(const std::string& text, double x, double y) {
@@ -226,11 +248,11 @@ Matplot::Matplot(const Figure& fig) {
         std::unique_ptr<Timestamps> ts;
         if (ax.is_x_nanotimestamps) {
           ts = std::make_unique<Timestamps>(line.xs);
-          x = vector_to_ndarray(ts->datetimes);
+          x = vector_to_1darray(ts->datetimes);
         } else {
-          x = vector_to_ndarray(line.xs);
+          x = vector_to_1darray(line.xs);
         }
-        auto y = vector_to_ndarray(line.ys);
+        auto y = vector_to_1darray(line.ys);
 
         auto plot = PyObject_GetAttrString(pyax, "plot");
         auto args = Py_BuildValue("(OO)", x, y);
@@ -254,11 +276,11 @@ Matplot::Matplot(const Figure& fig) {
         std::unique_ptr<Timestamps> ts;
         if (ax.is_x_nanotimestamps) {
           ts = std::make_unique<Timestamps>(scatter.xs);
-          x = vector_to_ndarray(ts->datetimes);
+          x = vector_to_1darray(ts->datetimes);
         } else {
-          x = vector_to_ndarray(scatter.xs);
+          x = vector_to_1darray(scatter.xs);
         }
-        auto y = vector_to_ndarray(scatter.ys);
+        auto y = vector_to_1darray(scatter.ys);
 
         auto plot = PyObject_GetAttrString(pyax, "scatter");
         auto args = Py_BuildValue("(OOd)", x, y, scatter.marker_size);
@@ -296,12 +318,12 @@ Matplot::Matplot(const Figure& fig) {
         std::unique_ptr<Timestamps> ts;
         if (ax.is_x_nanotimestamps) {
           ts = std::make_unique<Timestamps>(area.xs);
-          x = vector_to_ndarray(ts->datetimes);
+          x = vector_to_1darray(ts->datetimes);
         } else {
-          x = vector_to_ndarray(area.xs);
+          x = vector_to_1darray(area.xs);
         }
-        auto y1 = vector_to_ndarray(area.y1s);
-        auto y2 = vector_to_ndarray(area.y2s);
+        auto y1 = vector_to_1darray(area.y1s);
+        auto y2 = vector_to_1darray(area.y2s);
 
         auto plot = PyObject_GetAttrString(pyax, "fill_between");
         auto args = Py_BuildValue("(OOO)", x, y1, y2);
@@ -320,33 +342,55 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(pyarea);
       }
       for (const auto& histogram : ax.histograms) {
-        PyObject* x;
-        std::unique_ptr<Timestamps> ts;
-        if (ax.is_x_nanotimestamps) {
-          ts = std::make_unique<Timestamps>(line.xs);
-          x = vector_to_ndarray(ts->datetimes);
-        } else {
-          x = vector_to_ndarray(line.xs);
+        PyObject* x = PyList_New(histogram.xs_list.size());
+        {
+          Py_ssize_t idx = 0;
+          for (auto& xs : histogram.xs_list) {
+            PyList_SetItem(x, idx++, vector_to_1darray(xs));
+          }
         }
-        auto y = vector_to_ndarray(line.ys);
+
+        PyObject* y = nullptr;
+        if (histogram.weights_list) {
+          y = PyList_New(histogram.weights_list->size());
+          Py_ssize_t idx = 0;
+          for (auto& ys : *histogram.weights_list) {
+            PyList_SetItem(y, idx++, vector_to_1darray(ys));
+          }
+        }
+
+        PyObject* labels = PyList_New(histogram.names.size());
+        {
+          Py_ssize_t idx = 0;
+          for (auto& name : histogram.names) {
+            PyList_SetItem(labels, idx++, PyUnicode_FromString(name.c_str()));
+          }
+        }
 
         auto plot = PyObject_GetAttrString(pyax, "hist");
         auto args = Py_BuildValue("(O)", x);
-        auto kwargs = Py_BuildValue("{s:O, s:s,s:d,s:i,s:s,s:d,s:O}", "weights", y, "label", histogram.name.c_str(),
-                                    "alpha", histogram.alpha, "bins", histogram.num_bins, "histtype", histogram.type,
-                                    "density", histogram.normalize_unit_area, "stacked",
-                                    histogram.stackedd ? PyUnicode_FromString(histogram.color->c_str()) : Py_None);
+        auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:i,s:O,s:O,s:s,s:O,s:O}",                       //
+                                    "weights", (y == nullptr) ? Py_None : y,                       //
+                                    "label", labels,                                               //
+                                    "alpha", histogram.alpha,                                      //
+                                    "bins", histogram.num_bins,                                    //
+                                    "cumulative", histogram.cumulative ? Py_True : Py_False,       //
+                                    "log", histogram.log_scale_x ? Py_True : Py_False,             //
+                                    "histtype", histogram.type.c_str(),                            //
+                                    "density", histogram.normalize_unit_area ? Py_True : Py_False, //
+                                    "stacked", histogram.stacked ? Py_True : Py_False);
         auto pyhist = PyObject_Call(plot, args, kwargs);
         if (pyhist == nullptr) {
-          throw std::runtime_error("cannot draw a line");
+          throw std::runtime_error("cannot draw a histogram");
         }
 
         Py_DecRef(x);
         Py_DecRef(y);
+        Py_DecRef(labels);
         Py_DecRef(args);
         Py_DecRef(kwargs);
         Py_DecRef(plot);
-        Py_DecRef(pyline);
+        Py_DecRef(pyhist);
       }
       for (const auto& text : ax.texts) {
         auto props = Py_BuildValue("{s:s, s:s, s:d}", "boxstyle", text.bbox_style.c_str(), "facecolor",
@@ -375,7 +419,7 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(plot);
         Py_DecRef(pytext);
       }
-      if (ax.lines.size() + ax.scatters.size() + ax.areas.size() > 0) {
+      if (ax.lines.size() + ax.scatters.size() + ax.areas.size() + ax.histograms.size() > 0) {
         PyObject_CallMethod(pyax, "legend", nullptr);
       }
       Py_DecRef(pyax);

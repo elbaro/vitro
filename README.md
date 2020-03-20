@@ -5,6 +5,7 @@
 ![](plot1.png)
 ![](plot2.png)
 ![](plot3.png)
+![](plot4.png)
 
 The differences from matplotlib-cpp are:
 - stateless API
@@ -41,5 +42,17 @@ void plot() {
 
   Matplot matplot(fig);
   matplot.save("plot2.png");
+}
+```
+
+### Customize
+
+```
+auto ax1 = ..
+{
+  auto& scatter = ax1.scatter("scatter5", {4, 5, 6}, {1, 2, 3});
+  scatter.marker_size = 100;
+  scatter.color = "green";
+  scatter.marker_face_color = "none";
 }
 ```

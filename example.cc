@@ -64,9 +64,83 @@ void plot3() {
   matplot.save("plot3.png");
 }
 
+void plot4() {
+  Figure fig;
+  fig.title = "histogram";
+
+  auto& ax = fig.axes(1, 1);
+
+  std::vector<double> x1;
+  unsigned int k = 0;
+  for (int i = 0; i < 1000; i++) {
+    k = (k + 9832103711) % 217;
+    double s = k;
+    k = (k + 9832103711) % 217;
+    s += k;
+    k = (k + 9832103711) % 217;
+    s += k;
+    k = (k + 9832103711) % 217;
+    s += k;
+    x1.push_back(s / 4 / 217.0);
+  }
+  std::vector<double> x2;
+  for (int i = 0; i < 1000; i++) {
+    double s = 0;
+    k = (k + 2103713) % 981;
+    s += k;
+    k = (k + 2103713) % 981;
+    s += k;
+    k = (k + 2103713) % 981;
+    s += k;
+    k = (k + 2103713) % 981;
+    s += k;
+    x2.push_back(s / 5 / 981);
+  }
+
+  std::vector<double> x3;
+  for (int i = 0; i < 1000; i++) {
+    k = (k + 98323711) % 137;
+    double s = k;
+    k = (k + 98323711) % 137;
+    s += k;
+    k = (k + 98323711) % 137;
+    s += k;
+    k = (k + 98323711) % 137;
+    s += k;
+    x3.push_back(s / 4 / 100.0);
+  }
+  std::vector<double> x4;
+  for (int i = 0; i < 1000; i++) {
+    double s = 0;
+    k = (k + 11210713) % 9817;
+    s += k;
+    k = (k + 11210713) % 9817;
+    s += k;
+    k = (k + 11210713) % 9817;
+    s += k;
+    k = (k + 11210713) % 9817;
+    s += k;
+    x4.push_back(s / 5 / 10000);
+  }
+
+  {
+    auto& hist = ax.histogram({"h1", "h2"}, 40, {x1, x2});
+    hist.normalize_unit_area = true;
+  }
+  {
+    auto& hist = ax.histogram({"h3", "h4"}, 40, {x3, x4});
+    hist.type = "step";
+    hist.normalize_unit_area = true;
+  }
+
+  Matplot matplot(fig);
+  matplot.save("plot4.png");
+}
+
 int main() {
   plot1();
   plot2();
   plot3();
+  plot4();
   return 0;
 }
