@@ -242,6 +242,8 @@ Matplot::Matplot(const Figure& fig) {
       if (ax.ylabel.size() > 0) {
         PyObject_CallMethod(pyax, "set_ylabel", "s", ax.ylabel.c_str());
       }
+      PyObject_CallMethod(pyax, "set_xscale", "s", ax.xscale.c_str());
+      PyObject_CallMethod(pyax, "set_yscale", "s", ax.yscale.c_str());
 
       for (const auto& line : ax.lines) {
         PyObject* x;
@@ -369,13 +371,12 @@ Matplot::Matplot(const Figure& fig) {
 
         auto plot = PyObject_GetAttrString(pyax, "hist");
         auto args = Py_BuildValue("(O)", x);
-        auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:i,s:O,s:O,s:s,s:O,s:O}",                       //
+        auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:i,s:O,s:s,s:O,s:O}",                           //
                                     "weights", (y == nullptr) ? Py_None : y,                       //
                                     "label", labels,                                               //
                                     "alpha", histogram.alpha,                                      //
                                     "bins", histogram.num_bins,                                    //
                                     "cumulative", histogram.cumulative ? Py_True : Py_False,       //
-                                    "log", histogram.log_scale_x ? Py_True : Py_False,             //
                                     "histtype", histogram.type.c_str(),                            //
                                     "density", histogram.normalize_unit_area ? Py_True : Py_False, //
                                     "stacked", histogram.stacked ? Py_True : Py_False);

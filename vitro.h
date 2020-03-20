@@ -87,9 +87,7 @@ public:
   double alpha = 0.3;
   bool stacked = false;
   bool cumulative = false;
-  bool log_scale_x = false;
-  std::string type = "stepfilled";
-  // std::string type = "step"; // or "stepfilled"
+  std::string type = "stepfilled"; //  or "step"
   bool normalize_unit_area = false;
 
   std::vector<std::vector<double>> xs_list;
@@ -129,6 +127,8 @@ public:
   std::string title{};
   std::string xlabel;
   std::string ylabel;
+  std::string xscale = "linear"; // "log", "logit", ..
+  std::string yscale = "linear";
   bool is_x_nanotimestamps = false; // if true, x values are interprested as unix epochs in nanoseconds
   std::vector<Line> lines;
   std::vector<Scatter> scatters;
