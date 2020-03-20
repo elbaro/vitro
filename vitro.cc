@@ -242,21 +242,36 @@ Matplot::Matplot(const Figure& fig) {
   for (Py_intptr_t i = 0; i < fig.nrow; i++) {
     for (Py_intptr_t j = 0; j < fig.ncol; j++) {
       int idx = i * fig.ncol + j;
-      pyaxes[idx] = *reinterpret_cast<PyObject**>(PyArray_GETPTR2(reinterpret_cast<PyArrayObject*>(result), i, j));
-      Py_IncRef(pyaxes[idx]);
+      auto* ax = pyaxes[idx] =
+          *reinterpret_cast<PyObject**>(PyArray_GETPTR2(reinterpret_cast<PyArrayObject*>(result), i, j));
+      Py_IncRef(ax);
 
       auto pair = std::make_pair(static_cast<int>(i + 1), static_cast<int>(j + 1));
       if (fig.twinx_idx_.find(pair) != fig.twinx_idx_.end()) {
-        pyaxes[fig.twinx_idx_.at(pair)] = PyObject_CallMethod(pyaxes[idx], "twinx", nullptr);
+        auto* twin_ax = pyaxes[fig.twinx_idx_.at(pair)] = PyObject_CallMethod(ax, "twinx", nullptr);
+        auto* ax_get_lines = PyObject_GetAttrString(ax, "_get_lines");
+        auto* ax_prop_cycler = PyObject_GetAttrString(ax_get_lines, "prop_cycler");
+        auto* twin_get_lines = PyObject_GetAttrString(twin_ax, "_get_lines");
+        PyObject_SetAttrString(twin_get_lines, "prop_cycler", ax_prop_cycler);
+        Py_DecRef(ax_prop_cycler);
+        Py_DecRef(ax_get_lines);
+        Py_DecRef(twin_get_lines);
       }
       if (fig.twiny_idx_.find(pair) != fig.twiny_idx_.end()) {
-        pyaxes[fig.twiny_idx_.at(pair)] = PyObject_CallMethod(pyaxes[idx], "twiny", nullptr);
+        auto* twin_ax = pyaxes[fig.twiny_idx_.at(pair)] = PyObject_CallMethod(ax, "twiny", nullptr);
+        auto* ax_get_lines = PyObject_GetAttrString(ax, "_get_lines");
+        auto* ax_prop_cycler = PyObject_GetAttrString(ax_get_lines, "prop_cycler");
+        auto* twin_get_lines = PyObject_GetAttrString(twin_ax, "_get_lines");
+        PyObject_SetAttrString(twin_get_lines, "prop_cycler", ax_prop_cycler);
+        Py_DecRef(ax_prop_cycler);
+        Py_DecRef(ax_get_lines);
+        Py_DecRef(twin_get_lines);
       }
     }
   }
   Py_DecRef(result);
 
-  for (int ax_i = 0; ax_i < fig.axes_.size(); ax_i++) {
+  for (size_t ax_i = 0; ax_i < fig.axes_.size(); ax_i++) {
     const auto& ax = fig.axes_[ax_i];
     auto* pyax = pyaxes[ax_i];
     if (ax.title.size() > 0) {
