@@ -4,17 +4,25 @@ void plot1() {
   Figure fig{};
   fig.title = "t - t - title";
 
-  auto& ax = fig.axes(1, 1);
-  ax.line("line1", {1583521630'000'000'000, 1583521730'000'000'000, 1583521830'000'000'000}, {4, 5, 6});
-  ax.scatter("scatter2", {1583521630'000'000'000, 1583521730'000'000'000, 1583521830'000'000'000}, {1, 4, 2});
-  ax.text("This is vitro.\n1+1=3", 0.9, 0.9);
-  ax.text("left bottom", 0.1, 0.1);
-  ax.text("right mid", 0.9, 0.5);
-  ax.text("right bottom", 0.9, 0.1);
+  {
+    auto& ax = fig.axes(1, 1);
+    ax.line("line1", {1583521630'000'000'000, 1583521730'000'000'000, 1583521830'000'000'000}, {4, 5, 6});
+    ax.scatter("scatter2", {1583521630'000'000'000, 1583521730'000'000'000, 1583521830'000'000'000}, {1, 4, 2});
+    ax.text("This is vitro.\n1+1=3", 0.9, 0.9);
+    ax.text("left bottom", 0.1, 0.1);
+    ax.text("right mid", 0.9, 0.5);
+    ax.text("right bottom", 0.9, 0.1);
 
-  ax.xlabel = "x-axis-name";
-  ax.ylabel = "y-axis-name";
-  ax.is_x_nanotimestamps = true;
+    ax.xlabel = "x-axis-name";
+    ax.ylabel = "y-axis-name";
+    ax.is_x_nanotimestamps = true;
+  }
+
+  {
+    auto& ax = fig.twinx(1, 1);
+    ax.line("line2", {1583521660'000'000'000, 1583521710'000'000'000, 1583521780'000'000'000}, {4, 2, 3.5});
+    ax.is_x_nanotimestamps = true;
+  }
 
   Matplot matplot(fig);
   matplot.save("plot1.png");

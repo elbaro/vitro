@@ -1,6 +1,7 @@
 #include "vitro.h"
 #include <algorithm>
 #include <atomic>
+#include <iostream>
 #include <limits>
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -167,6 +168,18 @@ std::pair<int64_t, int64_t> Axes::xrange() {
       }
     }
   }
+  // for (const auto& h : histograms) {
+  //   if (area.xs.size() > 0) {
+  //     auto v1 = *std::min_element(area.xs.begin(), area.xs.end());
+  //     auto v2 = *std::max_element(area.xs.begin(), area.xs.end());
+  //     if (v1 < mn) {
+  //       mn = v1;
+  //     }
+  //     if (v2 > mx) {
+  //       mx = v2;
+  //     }
+  //   }
+  // }
   return std::make_pair(mn, mx);
 }
 
@@ -225,238 +238,247 @@ Matplot::Matplot(const Figure& fig) {
     throw std::runtime_error("Figure.subplots() failed");
   }
 
-  std::vector<PyObject*> pyaxes;
+  std::vector<PyObject*> pyaxes(fig.axes_.size());
   for (Py_intptr_t i = 0; i < fig.nrow; i++) {
     for (Py_intptr_t j = 0; j < fig.ncol; j++) {
-      pyaxes.push_back(*reinterpret_cast<PyObject**>(PyArray_GETPTR2(reinterpret_cast<PyArrayObject*>(result), i, j)));
-      Py_IncRef(pyaxes.back());
+      int idx = i * fig.ncol + j;
+      pyaxes[idx] = *reinterpret_cast<PyObject**>(PyArray_GETPTR2(reinterpret_cast<PyArrayObject*>(result), i, j));
+      Py_IncRef(pyaxes[idx]);
+
+      auto pair = std::make_pair(static_cast<int>(i + 1), static_cast<int>(j + 1));
+      if (fig.twinx_idx_.find(pair) != fig.twinx_idx_.end()) {
+        pyaxes[fig.twinx_idx_.at(pair)] = PyObject_CallMethod(pyaxes[idx], "twinx", nullptr);
+      }
+      if (fig.twiny_idx_.find(pair) != fig.twiny_idx_.end()) {
+        pyaxes[fig.twiny_idx_.at(pair)] = PyObject_CallMethod(pyaxes[idx], "twiny", nullptr);
+      }
     }
   }
   Py_DecRef(result);
 
-  for (int r = 1; r <= fig.nrow; r++) {
-    for (int c = 1; c <= fig.ncol; c++) {
-      const auto& ax = fig.readonly_axes(r, c);
-      auto* pyax = pyaxes[(r - 1) * fig.ncol + c - 1];
-      if (ax.title.size() > 0) {
-        PyObject_CallMethod(pyax, "set_title", "s", ax.title.c_str());
-      }
-      if (ax.xlabel.size() > 0) {
-        PyObject_CallMethod(pyax, "set_xlabel", "s", ax.xlabel.c_str());
-      }
-      if (ax.ylabel.size() > 0) {
-        PyObject_CallMethod(pyax, "set_ylabel", "s", ax.ylabel.c_str());
-      }
-      PyObject_CallMethod(pyax, "set_xscale", "s", ax.xscale.c_str());
-      PyObject_CallMethod(pyax, "set_yscale", "s", ax.yscale.c_str());
-
-      for (const auto& line : ax.lines) {
-        PyObject* x;
-        std::unique_ptr<Timestamps> ts;
-        if (ax.is_x_nanotimestamps) {
-          ts = std::make_unique<Timestamps>(line.xs);
-          x = vector_to_1darray(ts->datetimes);
-        } else {
-          x = vector_to_1darray(line.xs);
-        }
-        auto y = vector_to_1darray(line.ys);
-
-        auto plot = PyObject_GetAttrString(pyax, "plot");
-        auto args = Py_BuildValue("(OO)", x, y);
-        auto kwargs = Py_BuildValue("{s:s,s:d,s:s,s:d,s:O}", "label", line.name.c_str(), "alpha", line.alpha,
-                                    "drawstyle", line.drawstyle.c_str(), "linewidth", line.width, "color",
-                                    line.color ? PyUnicode_FromString(line.color->c_str()) : Py_None);
-        auto pyline = PyObject_Call(plot, args, kwargs);
-        if (pyline == nullptr) {
-          throw std::runtime_error("cannot draw a line");
-        }
-
-        Py_DecRef(x);
-        Py_DecRef(y);
-        Py_DecRef(args);
-        Py_DecRef(kwargs);
-        Py_DecRef(plot);
-        Py_DecRef(pyline);
-      }
-      for (const auto& scatter : ax.scatters) {
-        PyObject* x;
-        std::unique_ptr<Timestamps> ts;
-        if (ax.is_x_nanotimestamps) {
-          ts = std::make_unique<Timestamps>(scatter.xs);
-          x = vector_to_1darray(ts->datetimes);
-        } else {
-          x = vector_to_1darray(scatter.xs);
-        }
-        auto y = vector_to_1darray(scatter.ys);
-
-        auto plot = PyObject_GetAttrString(pyax, "scatter");
-        auto args = Py_BuildValue("(OOd)", x, y, scatter.marker_size);
-        auto color_str = scatter.color ? PyUnicode_FromString(scatter.color->c_str()) : Py_None;
-        auto kwargs =
-            Py_BuildValue("{s:s, s:d, s:s, s:d, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha, "marker",
-                          scatter.marker_type.c_str(), "linewidths", scatter.width, "color", color_str);
-        if (scatter.marker_edge_color) {
-          auto s = PyUnicode_FromString(scatter.marker_edge_color->c_str());
-          PyDict_SetItemString(kwargs, "edgecolors", s);
-          Py_DecRef(s);
-        }
-        if (scatter.marker_face_color) {
-          auto s = PyUnicode_FromString(scatter.marker_face_color->c_str());
-          PyDict_SetItemString(kwargs, "facecolors", s);
-          Py_DecRef(s);
-        }
-        if (color_str != Py_None) {
-          Py_DecRef(color_str);
-        }
-        auto pyscatter = PyObject_Call(plot, args, kwargs);
-        if (pyscatter == nullptr) {
-          throw std::runtime_error("cannot draw a scatter");
-        }
-
-        Py_DecRef(x);
-        Py_DecRef(y);
-        Py_DecRef(args);
-        Py_DecRef(kwargs);
-        Py_DecRef(plot);
-        Py_DecRef(pyscatter);
-      }
-      for (const auto& area : ax.areas) {
-        PyObject* x;
-        std::unique_ptr<Timestamps> ts;
-        if (ax.is_x_nanotimestamps) {
-          ts = std::make_unique<Timestamps>(area.xs);
-          x = vector_to_1darray(ts->datetimes);
-        } else {
-          x = vector_to_1darray(area.xs);
-        }
-        auto y1 = vector_to_1darray(area.y1s);
-        auto y2 = vector_to_1darray(area.y2s);
-
-        auto plot = PyObject_GetAttrString(pyax, "fill_between");
-        auto args = Py_BuildValue("(OOO)", x, y1, y2);
-        auto kwargs = Py_BuildValue("{s:s, s:d, s:s}", "label", area.name.c_str(), "alpha", area.alpha, "facecolor",
-                                    area.color.c_str());
-        auto pyarea = PyObject_Call(plot, args, kwargs);
-        if (pyarea == nullptr) {
-          throw std::runtime_error("cannot draw a fill_between");
-        }
-        Py_DecRef(x);
-        Py_DecRef(y1);
-        Py_DecRef(y2);
-        Py_DecRef(args);
-        Py_DecRef(kwargs);
-        Py_DecRef(plot);
-        Py_DecRef(pyarea);
-      }
-      for (const auto& histogram : ax.histograms) {
-        PyObject* x = PyList_New(histogram.xs_list.size());
-        {
-          Py_ssize_t idx = 0;
-          for (auto& xs : histogram.xs_list) {
-            PyList_SetItem(x, idx++, vector_to_1darray(xs));
-          }
-        }
-
-        PyObject* y = nullptr;
-        if (histogram.weights_list) {
-          y = PyList_New(histogram.weights_list->size());
-          Py_ssize_t idx = 0;
-          for (auto& ys : *histogram.weights_list) {
-            PyList_SetItem(y, idx++, vector_to_1darray(ys));
-          }
-        }
-
-        PyObject* labels = PyList_New(histogram.names.size());
-        {
-          Py_ssize_t idx = 0;
-          for (auto& name : histogram.names) {
-            PyList_SetItem(labels, idx++, PyUnicode_FromString(name.c_str()));
-          }
-        }
-
-        PyObject* bins;
-        if (histogram.bin_log_scale) {
-          double min = std::numeric_limits<double>::max();
-          double max = std::numeric_limits<double>::min();
-          for (auto& xs : histogram.xs_list) {
-            if (xs.empty()) {
-              continue;
-            }
-            const auto [mn, mx] = std::minmax_element(xs.begin(), xs.end());
-            if (*mn < min) {
-              min = *mn;
-            }
-            if (*mx > max) {
-              max = *mx;
-            }
-          }
-
-          bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
-          if (bins == nullptr) {
-            throw std::runtime_error("cannot call np.geomspace()");
-          }
-        } else {
-          bins = PyLong_FromLong(histogram.num_bins);
-        }
-
-        auto plot = PyObject_GetAttrString(pyax, "hist");
-        auto args = Py_BuildValue("(O)", x);
-        auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:O,s:O,s:s,s:O,s:O}",
-
-                                    "weights", (y == nullptr) ? Py_None : y,                  //
-                                    "label", labels,                                          //
-                                    "alpha", histogram.alpha,                                 //
-                                    "bins", bins,                                             //
-                                    "cumulative", histogram.cumulative ? Py_True : Py_False,  //
-                                    "histtype", histogram.type.c_str(),                       //
-                                    "density", histogram.normalize_area ? Py_True : Py_False, //
-                                    "stacked", histogram.stacked ? Py_True : Py_False);
-        auto pyhist = PyObject_Call(plot, args, kwargs);
-        if (pyhist == nullptr) {
-          throw std::runtime_error("cannot draw a histogram");
-        }
-
-        Py_DecRef(x);
-        Py_DecRef(y);
-        Py_DecRef(labels);
-        Py_DecRef(bins);
-        Py_DecRef(args);
-        Py_DecRef(kwargs);
-        Py_DecRef(plot);
-        Py_DecRef(pyhist);
-      }
-      for (const auto& text : ax.texts) {
-        auto props = Py_BuildValue("{s:s, s:s, s:d}", "boxstyle", text.bbox_style.c_str(), "facecolor",
-                                   text.bbox_color.c_str(), "alpha", text.bbox_alpha);
-        PyObject* transform;
-        if (text.transform == "axes") {
-          transform = PyObject_GetAttrString(pyax, "transAxes");
-        } else {
-          throw std::runtime_error("unknown text coordinate transform: " + text.transform);
-        }
-        auto plot = PyObject_GetAttrString(pyax, "text");
-        auto args = Py_BuildValue("(dds)", text.x, text.y, text.text.c_str());
-        auto kwargs =
-            Py_BuildValue("{s:d,s:d,s:O,s:O,s:s,s:s}", "fontsize", text.fontsize, "alpha", text.alpha, "transform",
-                          transform, "bbox", props, "verticalalignment", text.verticalalignment.c_str(),
-                          "horizontalalignment", text.horizontalalignment.c_str());
-
-        auto pytext = PyObject_Call(plot, args, kwargs);
-        if (pytext == nullptr) {
-          throw std::runtime_error("cannot draw a text");
-        }
-        Py_DecRef(transform);
-        Py_DecRef(props);
-        Py_DecRef(args);
-        Py_DecRef(kwargs);
-        Py_DecRef(plot);
-        Py_DecRef(pytext);
-      }
-      if (ax.lines.size() + ax.scatters.size() + ax.areas.size() + ax.histograms.size() > 0) {
-        PyObject_CallMethod(pyax, "legend", nullptr);
-      }
-      Py_DecRef(pyax);
+  for (int ax_i = 0; ax_i < fig.axes_.size(); ax_i++) {
+    const auto& ax = fig.axes_[ax_i];
+    auto* pyax = pyaxes[ax_i];
+    if (ax.title.size() > 0) {
+      PyObject_CallMethod(pyax, "set_title", "s", ax.title.c_str());
     }
+    if (ax.xlabel.size() > 0) {
+      PyObject_CallMethod(pyax, "set_xlabel", "s", ax.xlabel.c_str());
+    }
+    if (ax.ylabel.size() > 0) {
+      PyObject_CallMethod(pyax, "set_ylabel", "s", ax.ylabel.c_str());
+    }
+    if (ax.xscale.size() > 0) {
+      PyObject_CallMethod(pyax, "set_xscale", "s", ax.xscale.c_str());
+    }
+    if (ax.yscale.size() > 0) {
+      PyObject_CallMethod(pyax, "set_yscale", "s", ax.yscale.c_str());
+    }
+    for (const auto& line : ax.lines) {
+      PyObject* x;
+      std::unique_ptr<Timestamps> ts;
+      if (ax.is_x_nanotimestamps) {
+        ts = std::make_unique<Timestamps>(line.xs);
+        x = vector_to_1darray(ts->datetimes);
+      } else {
+        x = vector_to_1darray(line.xs);
+      }
+      auto y = vector_to_1darray(line.ys);
+
+      auto plot = PyObject_GetAttrString(pyax, "plot");
+      auto args = Py_BuildValue("(OO)", x, y);
+      auto kwargs = Py_BuildValue("{s:s,s:d,s:s,s:d,s:O}", "label", line.name.c_str(), "alpha", line.alpha, "drawstyle",
+                                  line.drawstyle.c_str(), "linewidth", line.width, "color",
+                                  line.color ? PyUnicode_FromString(line.color->c_str()) : Py_None);
+      auto pyline = PyObject_Call(plot, args, kwargs);
+      if (pyline == nullptr) {
+        throw std::runtime_error("cannot draw a line");
+      }
+
+      Py_DecRef(x);
+      Py_DecRef(y);
+      Py_DecRef(args);
+      Py_DecRef(kwargs);
+      Py_DecRef(plot);
+      Py_DecRef(pyline);
+    }
+    for (const auto& scatter : ax.scatters) {
+      PyObject* x;
+      std::unique_ptr<Timestamps> ts;
+      if (ax.is_x_nanotimestamps) {
+        ts = std::make_unique<Timestamps>(scatter.xs);
+        x = vector_to_1darray(ts->datetimes);
+      } else {
+        x = vector_to_1darray(scatter.xs);
+      }
+      auto y = vector_to_1darray(scatter.ys);
+
+      auto plot = PyObject_GetAttrString(pyax, "scatter");
+      auto args = Py_BuildValue("(OOd)", x, y, scatter.marker_size);
+      auto color_str = scatter.color ? PyUnicode_FromString(scatter.color->c_str()) : Py_None;
+      auto kwargs =
+          Py_BuildValue("{s:s, s:d, s:s, s:d, s:O}", "label", scatter.name.c_str(), "alpha", scatter.alpha, "marker",
+                        scatter.marker_type.c_str(), "linewidths", scatter.width, "color", color_str);
+      if (scatter.marker_edge_color) {
+        auto s = PyUnicode_FromString(scatter.marker_edge_color->c_str());
+        PyDict_SetItemString(kwargs, "edgecolors", s);
+        Py_DecRef(s);
+      }
+      if (scatter.marker_face_color) {
+        auto s = PyUnicode_FromString(scatter.marker_face_color->c_str());
+        PyDict_SetItemString(kwargs, "facecolors", s);
+        Py_DecRef(s);
+      }
+      if (color_str != Py_None) {
+        Py_DecRef(color_str);
+      }
+      auto pyscatter = PyObject_Call(plot, args, kwargs);
+      if (pyscatter == nullptr) {
+        throw std::runtime_error("cannot draw a scatter");
+      }
+
+      Py_DecRef(x);
+      Py_DecRef(y);
+      Py_DecRef(args);
+      Py_DecRef(kwargs);
+      Py_DecRef(plot);
+      Py_DecRef(pyscatter);
+    }
+    for (const auto& area : ax.areas) {
+      PyObject* x;
+      std::unique_ptr<Timestamps> ts;
+      if (ax.is_x_nanotimestamps) {
+        ts = std::make_unique<Timestamps>(area.xs);
+        x = vector_to_1darray(ts->datetimes);
+      } else {
+        x = vector_to_1darray(area.xs);
+      }
+      auto y1 = vector_to_1darray(area.y1s);
+      auto y2 = vector_to_1darray(area.y2s);
+
+      auto plot = PyObject_GetAttrString(pyax, "fill_between");
+      auto args = Py_BuildValue("(OOO)", x, y1, y2);
+      auto kwargs = Py_BuildValue("{s:s, s:d, s:s}", "label", area.name.c_str(), "alpha", area.alpha, "facecolor",
+                                  area.color.c_str());
+      auto pyarea = PyObject_Call(plot, args, kwargs);
+      if (pyarea == nullptr) {
+        throw std::runtime_error("cannot draw a fill_between");
+      }
+      Py_DecRef(x);
+      Py_DecRef(y1);
+      Py_DecRef(y2);
+      Py_DecRef(args);
+      Py_DecRef(kwargs);
+      Py_DecRef(plot);
+      Py_DecRef(pyarea);
+    }
+    for (const auto& histogram : ax.histograms) {
+      PyObject* x = PyList_New(histogram.xs_list.size());
+      {
+        Py_ssize_t idx = 0;
+        for (auto& xs : histogram.xs_list) {
+          PyList_SetItem(x, idx++, vector_to_1darray(xs));
+        }
+      }
+
+      PyObject* y = nullptr;
+      if (histogram.weights_list) {
+        y = PyList_New(histogram.weights_list->size());
+        Py_ssize_t idx = 0;
+        for (auto& ys : *histogram.weights_list) {
+          PyList_SetItem(y, idx++, vector_to_1darray(ys));
+        }
+      }
+
+      PyObject* labels = PyList_New(histogram.names.size());
+      {
+        Py_ssize_t idx = 0;
+        for (auto& name : histogram.names) {
+          PyList_SetItem(labels, idx++, PyUnicode_FromString(name.c_str()));
+        }
+      }
+
+      PyObject* bins;
+      if (histogram.bin_log_scale) {
+        double min = std::numeric_limits<double>::max();
+        double max = std::numeric_limits<double>::min();
+        for (auto& xs : histogram.xs_list) {
+          if (xs.empty()) {
+            continue;
+          }
+          const auto [mn, mx] = std::minmax_element(xs.begin(), xs.end());
+          if (*mn < min) {
+            min = *mn;
+          }
+          if (*mx > max) {
+            max = *mx;
+          }
+        }
+
+        bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
+        if (bins == nullptr) {
+          throw std::runtime_error("cannot call np.geomspace()");
+        }
+      } else {
+        bins = PyLong_FromLong(histogram.num_bins);
+      }
+
+      auto plot = PyObject_GetAttrString(pyax, "hist");
+      auto args = Py_BuildValue("(O)", x);
+      auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:O,s:O,s:s,s:O,s:O}",                      //
+                                  "weights", (y == nullptr) ? Py_None : y,                  //
+                                  "label", labels,                                          //
+                                  "alpha", histogram.alpha,                                 //
+                                  "bins", bins,                                             //
+                                  "cumulative", histogram.cumulative ? Py_True : Py_False,  //
+                                  "histtype", histogram.type.c_str(),                       //
+                                  "density", histogram.normalize_area ? Py_True : Py_False, //
+                                  "stacked", histogram.stacked ? Py_True : Py_False);
+      auto pyhist = PyObject_Call(plot, args, kwargs);
+      if (pyhist == nullptr) {
+        throw std::runtime_error("cannot draw a histogram");
+      }
+
+      Py_DecRef(x);
+      Py_DecRef(y);
+      Py_DecRef(labels);
+      Py_DecRef(bins);
+      Py_DecRef(args);
+      Py_DecRef(kwargs);
+      Py_DecRef(plot);
+      Py_DecRef(pyhist);
+    }
+    for (const auto& text : ax.texts) {
+      auto props = Py_BuildValue("{s:s, s:s, s:d}", "boxstyle", text.bbox_style.c_str(), "facecolor",
+                                 text.bbox_color.c_str(), "alpha", text.bbox_alpha);
+      PyObject* transform;
+      if (text.transform == "axes") {
+        transform = PyObject_GetAttrString(pyax, "transAxes");
+      } else {
+        throw std::runtime_error("unknown text coordinate transform: " + text.transform);
+      }
+      auto plot = PyObject_GetAttrString(pyax, "text");
+      auto args = Py_BuildValue("(dds)", text.x, text.y, text.text.c_str());
+      auto kwargs =
+          Py_BuildValue("{s:d,s:d,s:O,s:O,s:s,s:s}", "fontsize", text.fontsize, "alpha", text.alpha, "transform",
+                        transform, "bbox", props, "verticalalignment", text.verticalalignment.c_str(),
+                        "horizontalalignment", text.horizontalalignment.c_str());
+
+      auto pytext = PyObject_Call(plot, args, kwargs);
+      if (pytext == nullptr) {
+        throw std::runtime_error("cannot draw a text");
+      }
+      Py_DecRef(transform);
+      Py_DecRef(props);
+      Py_DecRef(args);
+      Py_DecRef(kwargs);
+      Py_DecRef(plot);
+      Py_DecRef(pytext);
+    }
+    if (ax.lines.size() + ax.scatters.size() + ax.areas.size() + ax.histograms.size() > 0) {
+      PyObject_CallMethod(pyax, "legend", nullptr);
+    }
+    Py_DecRef(pyax);
   }
 
   // cleanup

@@ -2,6 +2,7 @@
 #include <Python.h>
 
 #include <experimental/filesystem>
+#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -74,12 +75,21 @@ public:
   // private:
   std::string name;
   std::string color = "r";
-
   double alpha = 0.8;
+
   std::vector<int64_t> xs; // TODO : generic
   std::vector<double> y1s;
   std::vector<double> y2s;
 };
+
+// class Bar {
+// public:
+//   std::string name;
+//   double alpha = 0.4;
+
+//   std::vector<double> xs;
+//   std::vector<double> ys;
+// }
 
 class Histogram {
 public:
@@ -126,16 +136,17 @@ public:
   Text& text(const std::string& text, double x, double y);
 
   std::string title{};
-  std::string xlabel;
-  std::string ylabel;
-  std::string xscale = "linear"; // "log", "logit", ..
-  std::string yscale = "linear";
+  std::string xlabel{};
+  std::string ylabel{};
+  std::string xscale{}; // "log", "logit", ..
+  std::string yscale{};
   bool is_x_nanotimestamps = false; // if true, x values are interprested as unix epochs in nanoseconds
   std::vector<Line> lines;
   std::vector<Scatter> scatters;
   std::vector<Area> areas;
   std::vector<Histogram> histograms;
   std::vector<Text> texts;
+  bool is_twin = false;
 };
 
 class Figure {
@@ -156,6 +167,31 @@ public:
     return axes_[(r - 1) * ncol + c - 1];
   }
 
+  Axes& twinx(int r, int c) {
+    if (r < 1 || c < 1 || r > nrow || c > ncol) {
+      throw std::invalid_argument("axes out of range");
+    }
+    auto pair = std::make_pair(r, c);
+    if (twinx_idx_.find(pair) == twinx_idx_.end()) {
+      axes_.emplace_back();
+      axes_.back().is_twin = true;
+      twinx_idx_[pair] = axes_.size() - 1;
+    }
+    return axes_[twinx_idx_[pair]];
+  }
+  Axes& twiny(int r, int c) {
+    if (r < 1 || c < 1 || r > nrow || c > ncol) {
+      throw std::invalid_argument("axes out of range");
+    }
+    auto pair = std::make_pair(r, c);
+    if (twiny_idx_.find(pair) == twiny_idx_.end()) {
+      axes_.emplace_back();
+      axes_.back().is_twin = true;
+      twiny_idx_[pair] = axes_.size() - 1;
+    }
+    return axes_[twiny_idx_[pair]];
+  }
+
   /* -------------------------------- configure ------------------------------- */
   // Figure& title(const std::string& title) {}
   // Figure& size(int width, int height) {
@@ -172,8 +208,9 @@ public:
   std::optional<std::vector<double>> width_ratios;
   std::optional<std::vector<double>> height_ratios;
 
-private:
-  std::vector<Axes> axes_;
+  std::vector<Axes> axes_; // grid + extra twinx, twiny
+  std::map<std::pair<int, int>, int> twinx_idx_;
+  std::map<std::pair<int, int>, int> twiny_idx_;
 };
 
 class Matplot {
