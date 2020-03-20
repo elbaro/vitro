@@ -491,7 +491,17 @@ Matplot::Matplot(const Figure& fig) {
       Py_DecRef(pytext);
     }
     if (ax.lines.size() + ax.scatters.size() + ax.areas.size() + ax.histograms.size() > 0) {
-      PyObject_CallMethod(pyax, "legend", nullptr);
+      if (ax.legend.size() > 0) {
+        auto legend = PyObject_GetAttrString(pyax, "legend");
+        auto args = PyTuple_New(0);
+        auto kwargs = Py_BuildValue("{s:s}", "loc", ax.legend.c_str());
+        PyObject_Call(legend, args, kwargs);
+        Py_DecRef(args);
+        Py_DecRef(kwargs);
+        Py_DecRef(legend);
+      } else {
+        PyObject_CallMethod(pyax, "legend", nullptr);
+      }
     }
     Py_DecRef(pyax);
   }

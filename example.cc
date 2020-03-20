@@ -154,6 +154,7 @@ void plot4() {
     auto& ax = fig.axes(2, 1);
     ax.title = "log bins";
     ax.xscale = "log";
+    ax.legend = "upper left";
     {
       auto& hist = ax.histogram({"h1", "h2"}, 40, {x1, x2});
       hist.bin_log_scale = true;

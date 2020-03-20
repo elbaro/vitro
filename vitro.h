@@ -136,6 +136,7 @@ public:
   Text& text(const std::string& text, double x, double y);
 
   std::string title{};
+  std::string legend = "best"; // use "" to disable
   std::string xlabel{};
   std::string ylabel{};
   std::string xscale{}; // "log", "logit", ..
