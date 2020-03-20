@@ -175,7 +175,12 @@ Matplot::Matplot(const Figure& fig) {
 
   PyObject* pyplot = PyImport_ImportModule("matplotlib.pyplot");
   if (!pyplot) {
-    throw std::runtime_error("Error loading module matplotlib.pyplot");
+    throw std::runtime_error("Error importing matplotlib.pyplot");
+  }
+
+  PyObject* numpy = PyImport_ImportModule("numpy");
+  if (!numpy) {
+    throw std::runtime_error("Error importing module numpy");
   }
 
   // default dpi = 100 = pixels per inch
@@ -369,16 +374,42 @@ Matplot::Matplot(const Figure& fig) {
           }
         }
 
+        PyObject* bins;
+        if (histogram.bin_log_scale) {
+          double min = std::numeric_limits<double>::max();
+          double max = std::numeric_limits<double>::min();
+          for (auto& xs : histogram.xs_list) {
+            if (xs.empty()) {
+              continue;
+            }
+            const auto [mn, mx] = std::minmax_element(xs.begin(), xs.end());
+            if (*mn < min) {
+              min = *mn;
+            }
+            if (*mx > max) {
+              max = *mx;
+            }
+          }
+
+          bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
+          if (bins == nullptr) {
+            throw std::runtime_error("cannot call np.geomspace()");
+          }
+        } else {
+          bins = PyLong_FromLong(histogram.num_bins);
+        }
+
         auto plot = PyObject_GetAttrString(pyax, "hist");
         auto args = Py_BuildValue("(O)", x);
-        auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:i,s:O,s:s,s:O,s:O}",                           //
-                                    "weights", (y == nullptr) ? Py_None : y,                       //
-                                    "label", labels,                                               //
-                                    "alpha", histogram.alpha,                                      //
-                                    "bins", histogram.num_bins,                                    //
-                                    "cumulative", histogram.cumulative ? Py_True : Py_False,       //
-                                    "histtype", histogram.type.c_str(),                            //
-                                    "density", histogram.normalize_unit_area ? Py_True : Py_False, //
+        auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:O,s:O,s:s,s:O,s:O}",
+
+                                    "weights", (y == nullptr) ? Py_None : y,                  //
+                                    "label", labels,                                          //
+                                    "alpha", histogram.alpha,                                 //
+                                    "bins", bins,                                             //
+                                    "cumulative", histogram.cumulative ? Py_True : Py_False,  //
+                                    "histtype", histogram.type.c_str(),                       //
+                                    "density", histogram.normalize_area ? Py_True : Py_False, //
                                     "stacked", histogram.stacked ? Py_True : Py_False);
         auto pyhist = PyObject_Call(plot, args, kwargs);
         if (pyhist == nullptr) {
@@ -388,6 +419,7 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(x);
         Py_DecRef(y);
         Py_DecRef(labels);
+        Py_DecRef(bins);
         Py_DecRef(args);
         Py_DecRef(kwargs);
         Py_DecRef(plot);

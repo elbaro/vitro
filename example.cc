@@ -73,10 +73,8 @@ void plot3() {
 }
 
 void plot4() {
-  Figure fig;
+  Figure fig(2, 1);
   fig.title = "histogram";
-
-  auto& ax = fig.axes(1, 1);
 
   std::vector<double> x1;
   unsigned int k = 0;
@@ -132,13 +130,31 @@ void plot4() {
   }
 
   {
-    auto& hist = ax.histogram({"h1", "h2"}, 40, {x1, x2});
-    hist.normalize_unit_area = true;
+    auto& ax = fig.axes(1, 1);
+
+    {
+      auto& hist = ax.histogram({"h1", "h2"}, 40, {x1, x2});
+      hist.normalize_area = true;
+    }
+    {
+      auto& hist = ax.histogram({"h3", "h4"}, 40, {x3, x4});
+      hist.type = "step";
+      hist.normalize_area = true;
+    }
   }
   {
-    auto& hist = ax.histogram({"h3", "h4"}, 40, {x3, x4});
-    hist.type = "step";
-    hist.normalize_unit_area = true;
+    auto& ax = fig.axes(2, 1);
+    ax.title = "log bins";
+    ax.xscale = "log";
+    {
+      auto& hist = ax.histogram({"h1", "h2"}, 40, {x1, x2});
+      hist.bin_log_scale = true;
+    }
+    {
+      auto& hist = ax.histogram({"h3", "h4"}, 40, {x3, x4});
+      hist.type = "step";
+      hist.bin_log_scale = true;
+    }
   }
 
   Matplot matplot(fig);

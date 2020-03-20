@@ -88,11 +88,12 @@ public:
   bool stacked = false;
   bool cumulative = false;
   std::string type = "stepfilled"; //  or "step"
-  bool normalize_unit_area = false;
+  bool normalize_area = false;
 
   std::vector<std::vector<double>> xs_list;
   std::optional<std::vector<std::vector<double>>> weights_list;
   int num_bins = 0;
+  bool bin_log_scale = false;
 };
 
 class Text {
