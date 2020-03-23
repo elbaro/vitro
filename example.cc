@@ -81,7 +81,7 @@ void plot3() {
 }
 
 void plot4() {
-  Figure fig(2, 1);
+  Figure fig(3, 1);
   fig.title = "histogram";
 
   std::vector<double> x1;
@@ -163,6 +163,21 @@ void plot4() {
       auto& hist = ax.histogram({"h3", "h4"}, 40, {x3, x4});
       hist.type = "step";
       hist.bin_log_scale = true;
+    }
+  }
+  {
+    auto& ax = fig.axes(3, 1);
+
+    {
+      auto& hist = ax.histogram({"h1", "h2"}, 40, {x1, x2});
+      hist.normalize_area = true;
+      hist.cumulative = 1;
+    }
+    {
+      auto& hist = ax.histogram({"h3", "h4"}, 40, {x3, x4});
+      hist.normalize_area = true;
+      hist.type = "step";
+      hist.cumulative = -1;
     }
   }
 

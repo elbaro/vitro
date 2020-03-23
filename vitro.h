@@ -96,7 +96,7 @@ public:
   std::vector<std::string> names;
   double alpha = 0.3;
   bool stacked = false;
-  bool cumulative = false;
+  int cumulative = 0;              // 1, 0, -1
   std::string type = "stepfilled"; //  or "step"
   bool normalize_area = false;
 

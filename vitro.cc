@@ -440,12 +440,12 @@ Matplot::Matplot(const Figure& fig) {
 
       auto plot = PyObject_GetAttrString(pyax, "hist");
       auto args = Py_BuildValue("(O)", x);
-      auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:O,s:O,s:s,s:O,s:O}",                      //
+      auto kwargs = Py_BuildValue("{s:O,s:O,s:d,s:O,s:i,s:s,s:O,s:O}",                      //
                                   "weights", (y == nullptr) ? Py_None : y,                  //
                                   "label", labels,                                          //
                                   "alpha", histogram.alpha,                                 //
                                   "bins", bins,                                             //
-                                  "cumulative", histogram.cumulative ? Py_True : Py_False,  //
+                                  "cumulative", histogram.cumulative,                       //
                                   "histtype", histogram.type.c_str(),                       //
                                   "density", histogram.normalize_area ? Py_True : Py_False, //
                                   "stacked", histogram.stacked ? Py_True : Py_False);
