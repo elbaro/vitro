@@ -35,6 +35,11 @@ void plot2() {
   {
     auto& ax = fig.axes(1, 1);
     ax.xlim_right = 3;
+    ax.grid = true;
+    // ax.xtick_major = "max_n";
+    // ax.xtick_major_n = 3;
+    ax.xtick_major = "multiple";
+    ax.xtick_major_multiple = 0.5;
   }
 
   {

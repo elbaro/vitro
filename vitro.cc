@@ -217,6 +217,11 @@ Matplot::Matplot(const Figure& fig) {
     throw std::runtime_error("Error importing module numpy");
   }
 
+  PyObject* py_matplotlib_ticker = PyImport_ImportModule("matplotlib.ticker");
+  if (!py_matplotlib_ticker) {
+    throw std::runtime_error("Error importing module numpy");
+  }
+
   // default dpi = 100 = pixels per inch
   // width (px) => width/dpi (inches)
   pyfig = PyObject_CallMethod(pyplot, "figure", "O(dd)", new_none(), fig.width / 100.0, fig.height / 100.0);
@@ -314,6 +319,26 @@ Matplot::Matplot(const Figure& fig) {
     if (ax.yscale.size() > 0) {
       PyObject_CallMethod(pyax, "set_yscale", "s", ax.yscale.c_str());
       check_pyerr();
+    }
+    if (ax.grid) {
+      PyObject_CallMethod(pyax, "grid", "Oss", Py_True, ax.grid_tick.c_str(), ax.grid_axis.c_str());
+      check_pyerr();
+    }
+
+    if (ax.xtick_major != "auto") {
+      PyObject* locator;
+      if (ax.xtick_major == "max_n") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MaxNLocator", "i", ax.xtick_major_n);
+      } else if (ax.xtick_major == "multiple") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MultipleLocator", "d", ax.xtick_major_multiple);
+      } else {
+        throw std::runtime_error("cannot create matplotlib xtick locator");
+      }
+      check_pyerr();
+      auto* xaxis = PyObject_GetAttrString(pyax, "xaxis");
+      PyObject_CallMethod(xaxis, "set_major_locator", "O", locator);
+      Py_DecRef(xaxis);
+      Py_DecRef(locator);
     }
 
     for (const auto& line : ax.lines) {

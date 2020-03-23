@@ -143,6 +143,15 @@ public:
   std::optional<int64_t> xlim_right;
   std::string xscale{}; // "log", "logit", ..
   std::string yscale{};
+
+  bool grid = false;
+  std::string grid_tick = "both"; // "major", "minor"
+  std::string grid_axis = "both"; // "x", "y"
+
+  std::string xtick_major = "auto"; // "auto" / "max_n"+xtick_n / "multiple"+xtick_multiple
+  int xtick_major_n = 10;
+  double xtick_major_multiple = 1.0;
+
   bool is_x_nanotimestamps = false; // if true, x values are interprested as unix epochs in nanoseconds
   std::vector<Line> lines;
   std::vector<Scatter> scatters;
