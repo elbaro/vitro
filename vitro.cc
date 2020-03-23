@@ -17,6 +17,13 @@ void* _import_numpy() {
 
 PyObject* new_none() { Py_RETURN_NONE; }
 
+void check_pyerr() {
+  if (PyErr_Occurred()) {
+    PyErr_Print();
+    throw std::runtime_error("error from python");
+  }
+}
+
 void make_sure_initialized() {
   static std::atomic<bool> should_be_initialized(true);
   if (should_be_initialized.exchange(false, std::memory_order_seq_cst)) {
@@ -51,6 +58,20 @@ template <typename V> PyObject* vector_to_ndarray(const std::vector<V>& vec, con
     throw std::runtime_error("cannot convert std::vector to np.ndarray");
   }
   return arr;
+}
+
+PyObject* slow_int64_to_datetime(int64_t ts) {
+  PyObject* datetime_module = PyImport_ImportModule("datetime");
+  if (!datetime_module) {
+    throw std::runtime_error("Error loading module datetime");
+  }
+  PyObject* datetime = PyObject_GetAttrString(datetime_module, "datetime");
+  PyObject* utcfromtimestamp = PyObject_GetAttrString(datetime, "utcfromtimestamp");
+  PyObject* out = PyObject_CallFunction(utcfromtimestamp, "d", static_cast<double>(ts) * 1e-9);
+  Py_DecRef(utcfromtimestamp);
+  Py_DecRef(datetime);
+  Py_DecRef(datetime_module);
+  return out;
 }
 
 class Timestamps {
@@ -276,19 +297,25 @@ Matplot::Matplot(const Figure& fig) {
     auto* pyax = pyaxes[ax_i];
     if (ax.title.size() > 0) {
       PyObject_CallMethod(pyax, "set_title", "s", ax.title.c_str());
+      check_pyerr();
     }
     if (ax.xlabel.size() > 0) {
       PyObject_CallMethod(pyax, "set_xlabel", "s", ax.xlabel.c_str());
+      check_pyerr();
     }
     if (ax.ylabel.size() > 0) {
       PyObject_CallMethod(pyax, "set_ylabel", "s", ax.ylabel.c_str());
+      check_pyerr();
     }
     if (ax.xscale.size() > 0) {
       PyObject_CallMethod(pyax, "set_xscale", "s", ax.xscale.c_str());
+      check_pyerr();
     }
     if (ax.yscale.size() > 0) {
       PyObject_CallMethod(pyax, "set_yscale", "s", ax.yscale.c_str());
+      check_pyerr();
     }
+
     for (const auto& line : ax.lines) {
       PyObject* x;
       std::unique_ptr<Timestamps> ts;
@@ -348,6 +375,7 @@ Matplot::Matplot(const Figure& fig) {
         Py_DecRef(color_str);
       }
       auto pyscatter = PyObject_Call(plot, args, kwargs);
+      check_pyerr();
       if (pyscatter == nullptr) {
         throw std::runtime_error("cannot draw a scatter");
       }
@@ -376,6 +404,7 @@ Matplot::Matplot(const Figure& fig) {
       auto kwargs = Py_BuildValue("{s:s, s:d, s:s}", "label", area.name.c_str(), "alpha", area.alpha, "facecolor",
                                   area.color.c_str());
       auto pyarea = PyObject_Call(plot, args, kwargs);
+      check_pyerr();
       if (pyarea == nullptr) {
         throw std::runtime_error("cannot draw a fill_between");
       }
@@ -431,6 +460,7 @@ Matplot::Matplot(const Figure& fig) {
         }
 
         bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
+        check_pyerr();
         if (bins == nullptr) {
           throw std::runtime_error("cannot call np.geomspace()");
         }
@@ -450,6 +480,7 @@ Matplot::Matplot(const Figure& fig) {
                                   "density", histogram.normalize_area ? Py_True : Py_False, //
                                   "stacked", histogram.stacked ? Py_True : Py_False);
       auto pyhist = PyObject_Call(plot, args, kwargs);
+      check_pyerr();
       if (pyhist == nullptr) {
         throw std::runtime_error("cannot draw a histogram");
       }
@@ -480,6 +511,7 @@ Matplot::Matplot(const Figure& fig) {
                         "horizontalalignment", text.horizontalalignment.c_str());
 
       auto pytext = PyObject_Call(plot, args, kwargs);
+      check_pyerr();
       if (pytext == nullptr) {
         throw std::runtime_error("cannot draw a text");
       }
@@ -503,6 +535,29 @@ Matplot::Matplot(const Figure& fig) {
         PyObject_CallMethod(pyax, "legend", nullptr);
       }
     }
+    if (ax.xlim_left) {
+      if (ax.is_x_nanotimestamps) {
+        auto dt = slow_int64_to_datetime(*ax.xlim_left);
+        PyObject_CallMethod(pyax, "set_xlim", "O", dt);
+        check_pyerr();
+        Py_DecRef(dt);
+      } else {
+        PyObject_CallMethod(pyax, "set_xlim", "d", static_cast<double>(*ax.xlim_left));
+        check_pyerr();
+      }
+    }
+    if (ax.xlim_right) {
+      if (ax.is_x_nanotimestamps) {
+        auto dt = slow_int64_to_datetime(*ax.xlim_right);
+        PyObject_CallMethod(pyax, "set_xlim", "OO", Py_None, dt);
+        check_pyerr();
+        Py_DecRef(dt);
+      } else {
+        PyObject_CallMethod(pyax, "set_xlim", "Od", Py_None, static_cast<double>(*ax.xlim_right));
+        check_pyerr();
+      }
+    }
+
     Py_DecRef(pyax);
   }
 
@@ -512,9 +567,11 @@ Matplot::Matplot(const Figure& fig) {
   }
 
   PyObject_CallMethod(pyfig, "tight_layout", nullptr);
+  check_pyerr();
 }
 
 void Matplot::save(const std::experimental::filesystem::path& path) {
   auto ext = path.extension();
   PyObject_CallMethod(pyfig, "savefig", "s", path.c_str());
+  check_pyerr();
 }

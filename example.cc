@@ -33,6 +33,11 @@ void plot2() {
   fig.title = "2020-02-20";
 
   {
+    auto& ax = fig.axes(1, 1);
+    ax.xlim_right = 3;
+  }
+
+  {
     auto& ax = fig.axes(2, 1);
     ax.title = "row=2 col=1";
     ax.line("line2", {1, 2, 3}, {4, 5, 6});

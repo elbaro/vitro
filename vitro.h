@@ -139,6 +139,8 @@ public:
   std::string legend = "best"; // use "" to disable
   std::string xlabel{};
   std::string ylabel{};
+  std::optional<int64_t> xlim_left;
+  std::optional<int64_t> xlim_right;
   std::string xscale{}; // "log", "logit", ..
   std::string yscale{};
   bool is_x_nanotimestamps = false; // if true, x values are interprested as unix epochs in nanoseconds
