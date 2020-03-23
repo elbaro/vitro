@@ -325,9 +325,12 @@ Matplot::Matplot(const Figure& fig) {
       check_pyerr();
     }
 
+    // TODO: new struct for xtick_major, xtick_minor, ytick_major, ytick_minor
     if (ax.xtick_major != "auto") {
       PyObject* locator;
-      if (ax.xtick_major == "max_n") {
+      if (ax.xtick_major == "") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "NullLocator", nullptr);
+      } else if (ax.xtick_major == "max_n") {
         locator = PyObject_CallMethod(py_matplotlib_ticker, "MaxNLocator", "i", ax.xtick_major_n);
       } else if (ax.xtick_major == "multiple") {
         locator = PyObject_CallMethod(py_matplotlib_ticker, "MultipleLocator", "d", ax.xtick_major_multiple);
@@ -338,6 +341,57 @@ Matplot::Matplot(const Figure& fig) {
       auto* xaxis = PyObject_GetAttrString(pyax, "xaxis");
       PyObject_CallMethod(xaxis, "set_major_locator", "O", locator);
       Py_DecRef(xaxis);
+      Py_DecRef(locator);
+    }
+    if (ax.xtick_minor != "") {
+      PyObject* locator;
+      if (ax.xtick_minor == "auto") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "AutoMinorLocator", nullptr);
+      } else if (ax.xtick_minor == "max_n") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MaxNLocator", "i", ax.xtick_minor_n);
+      } else if (ax.xtick_minor == "multiple") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MultipleLocator", "d", ax.xtick_minor_multiple);
+      } else {
+        throw std::runtime_error("cannot create matplotlib xtick locator");
+      }
+      check_pyerr();
+      auto* xaxis = PyObject_GetAttrString(pyax, "xaxis");
+      PyObject_CallMethod(xaxis, "set_minor_locator", "O", locator);
+      Py_DecRef(xaxis);
+      Py_DecRef(locator);
+    }
+    if (ax.ytick_major != "auto") {
+      PyObject* locator;
+      if (ax.ytick_major == "") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "NullLocator", nullptr);
+      } else if (ax.ytick_major == "max_n") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MaxNLocator", "i", ax.ytick_major_n);
+      } else if (ax.ytick_major == "multiple") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MultipleLocator", "d", ax.ytick_major_multiple);
+      } else {
+        throw std::runtime_error("cannot create matplotlib ytick locator");
+      }
+      check_pyerr();
+      auto* yaxis = PyObject_GetAttrString(pyax, "yaxis");
+      PyObject_CallMethod(yaxis, "set_major_locator", "O", locator);
+      Py_DecRef(yaxis);
+      Py_DecRef(locator);
+    }
+    if (ax.ytick_minor != "") {
+      PyObject* locator;
+      if (ax.ytick_minor == "auto") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "AutoMinorLocator", nullptr);
+      } else if (ax.ytick_minor == "max_n") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MaxNLocator", "i", ax.ytick_minor_n);
+      } else if (ax.ytick_minor == "multiple") {
+        locator = PyObject_CallMethod(py_matplotlib_ticker, "MultipleLocator", "d", ax.ytick_minor_multiple);
+      } else {
+        throw std::runtime_error("cannot create matplotlib ytick locator");
+      }
+      check_pyerr();
+      auto* yaxis = PyObject_GetAttrString(pyax, "yaxis");
+      PyObject_CallMethod(yaxis, "set_minor_locator", "O", locator);
+      Py_DecRef(yaxis);
       Py_DecRef(locator);
     }
 

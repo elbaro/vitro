@@ -148,9 +148,21 @@ public:
   std::string grid_tick = "both"; // "major", "minor"
   std::string grid_axis = "both"; // "x", "y"
 
-  std::string xtick_major = "auto"; // "auto" / "max_n"+xtick_n / "multiple"+xtick_multiple
+  std::string xtick_major = "auto"; // "" / "auto" / "max_n"+xtick_n / "multiple"+xtick_multiple
   int xtick_major_n = 10;
   double xtick_major_multiple = 1.0;
+
+  std::string xtick_minor = ""; // "" / "auto" / "max_n"+xtick_n / "multiple"+xtick_multiple
+  int xtick_minor_n = 10;
+  double xtick_minor_multiple = 1.0;
+
+  std::string ytick_major = "auto"; // "" / "auto" / "max_n"+ytick_n / "multiple"+ytick_multiple
+  int ytick_major_n = 10;
+  double ytick_major_multiple = 1.0;
+
+  std::string ytick_minor = ""; // "" / "auto" / "max_n"+ytick_n / "multiple"+ytick_multiple
+  int ytick_minor_n = 10;
+  double ytick_minor_multiple = 1.0;
 
   bool is_x_nanotimestamps = false; // if true, x values are interprested as unix epochs in nanoseconds
   std::vector<Line> lines;

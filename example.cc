@@ -36,10 +36,15 @@ void plot2() {
     auto& ax = fig.axes(1, 1);
     ax.xlim_right = 3;
     ax.grid = true;
-    // ax.xtick_major = "max_n";
-    // ax.xtick_major_n = 3;
     ax.xtick_major = "multiple";
-    ax.xtick_major_multiple = 0.5;
+    ax.xtick_major_multiple = 2.0;
+    ax.xtick_minor = "max_n";
+    ax.xtick_minor_n = 3;
+
+    ax.ytick_major = "max_n";
+    ax.ytick_major_n = 7;
+    // ax.ytick_minor = "multiple";
+    // ax.ytick_minor_multiple = 2;
   }
 
   {
