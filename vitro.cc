@@ -538,14 +538,14 @@ Matplot::Matplot(const Figure& fig) {
           }
         }
 
-        if (min>0 && histogram.num_bins>=2) {
-          bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
-          check_pyerr();
-          if (bins == nullptr) {
-            throw std::runtime_error("cannot call np.geomspace()");
-          }
-        } else {
-          bins = Py_BuildValue("dd", min, max);
+        if (min <= 0) {
+          throw std::invalid_argument("when drawing histogram in log_scale, input number should be > 0");
+        }
+
+        bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
+        check_pyerr();
+        if (bins == nullptr) {
+          throw std::runtime_error("cannot call np.geomspace()");
         }
       } else {
         bins = PyLong_FromLong(histogram.num_bins);
