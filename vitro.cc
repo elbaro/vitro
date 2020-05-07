@@ -538,10 +538,14 @@ Matplot::Matplot(const Figure& fig) {
           }
         }
 
-        bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
-        check_pyerr();
-        if (bins == nullptr) {
-          throw std::runtime_error("cannot call np.geomspace()");
+        if (min>0 && histogram.num_bins>=2) {
+          bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
+          check_pyerr();
+          if (bins == nullptr) {
+            throw std::runtime_error("cannot call np.geomspace()");
+          }
+        } else {
+          bins = Py_BuildValue("dd", min, max);
         }
       } else {
         bins = PyLong_FromLong(histogram.num_bins);
