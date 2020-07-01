@@ -413,6 +413,9 @@ Matplot::Matplot(const Figure& fig) {
                                   line.color ? PyUnicode_FromString(line.color->c_str()) : Py_None);
       auto pyline = PyObject_Call(plot, args, kwargs);
       if (pyline == nullptr) {
+        if (PyErr_Occurred() != nullptr) {
+          PyErr_Print();
+        }
         throw std::runtime_error("cannot draw a line");
       }
 
@@ -456,6 +459,9 @@ Matplot::Matplot(const Figure& fig) {
       auto pyscatter = PyObject_Call(plot, args, kwargs);
       check_pyerr();
       if (pyscatter == nullptr) {
+        if (PyErr_Occurred() != nullptr) {
+          PyErr_Print();
+        }
         throw std::runtime_error("cannot draw a scatter");
       }
 
@@ -485,6 +491,9 @@ Matplot::Matplot(const Figure& fig) {
       auto pyarea = PyObject_Call(plot, args, kwargs);
       check_pyerr();
       if (pyarea == nullptr) {
+        if (PyErr_Occurred() != nullptr) {
+          PyErr_Print();
+        }
         throw std::runtime_error("cannot draw a fill_between");
       }
       Py_DecRef(x);
@@ -545,6 +554,9 @@ Matplot::Matplot(const Figure& fig) {
         bins = PyObject_CallMethod(numpy, "geomspace", "(ddi)", min, max, histogram.num_bins);
         check_pyerr();
         if (bins == nullptr) {
+          if (PyErr_Occurred() != nullptr) {
+            PyErr_Print();
+          }
           throw std::runtime_error("cannot call np.geomspace()");
         }
       } else {
