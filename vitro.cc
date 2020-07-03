@@ -123,6 +123,15 @@ Scatter& Axes::scatter(const std::string& name, const std::vector<int64_t>& xs, 
   return scatters.back();
 }
 
+Arrow& Axes::arrow(int64_t x1, double y1, int64_t x2, double y2) {
+  arrows.emplace_back();
+  arrows.back().x1 = x1;
+  arrows.back().y1 = y1;
+  arrows.back().x2 = x2;
+  arrows.back().y2 = y2;
+  return arrows.back();
+}
+
 Area& Axes::area(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& y1s,
                  const std::vector<double>& y2s) {
   areas.emplace_back();

@@ -57,6 +57,16 @@ public:
   std::vector<double> ys;
 };
 
+class Arrow {
+public:
+  double width = 0.001;
+  std::string shape = "full"; // "left", "right"
+  int64_t x1;
+  double y1;
+  int64_t x2;
+  double y2;
+};
+
 class Area {
 public:
   // Area& line_color(char color) {
@@ -129,6 +139,7 @@ public:
   /* ---------------------------------- plot ---------------------------------- */
   Line& line(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& ys);
   Scatter& scatter(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& ys);
+  Arrow& arrow(int64_t x1, double y1, int64_t x2, double y2);
   Area& area(const std::string& name, const std::vector<int64_t>& xs, const std::vector<double>& y1s,
              const std::vector<double>& y2s);
   Histogram& histogram(const std::vector<std::string>& names, int num_bins,
@@ -167,6 +178,7 @@ public:
   bool is_x_nanotimestamps = false; // if true, x values are interprested as unix epochs in nanoseconds
   std::vector<Line> lines;
   std::vector<Scatter> scatters;
+  std::vector<Arrow> arrows;
   std::vector<Area> areas;
   std::vector<Histogram> histograms;
   std::vector<Text> texts;
