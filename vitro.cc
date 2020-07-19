@@ -7,7 +7,7 @@
 #include <Python.h>
 #include <python3.8/object.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include "numpy/ndarraytypes.h"
+#include <numpy/ndarraytypes.h>
 #include <numpy/arrayobject.h>
 
 void* _import_numpy() {
